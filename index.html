@@ -111,7 +111,10 @@ nav.abajo .badge{position:absolute;top:2px;left:55%;background:var(--sale);color
 .cargando{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--fondo);font-weight:700;color:var(--suave);z-index:30}
 @media (prefers-reduced-motion:reduce){.hoja{transition:none}}
 
-nav.abajo{grid-template-columns:repeat(5,1fr)}
+nav.abajo{grid-template-columns:repeat(6,1fr)}
+nav.abajo button{font-size:11px}
+.hbar{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px}.hbar span{width:70px;color:var(--suave)}.hbar .barra{flex:1;margin:0;height:12px}.hbar b{width:110px;text-align:right}
+.sube{color:var(--sale);font-weight:700}.baja{color:var(--entra);font-weight:700}
 [hidden]{display:none!important}
 .portada{background:#04173a}
 .portada img{display:block;width:100%;max-width:560px;margin:0 auto}
@@ -247,12 +250,32 @@ header.top{background:#04173a;padding-top:4px}
   <button class="btn ancho" type="button" id="fijNuevo">+ Agregar pago fijo</button>
 </div></section>
 
+<!-- ============ HISTORIAL ============ -->
+<section class="pant" id="p-his"><div class="wrap">
+  <div class="titulo">Historial</div>
+  <p class="sub">Cuánto gastaste cada mes, en qué y comparado con el mes anterior.</p>
+  <label class="lbl" for="hMes">Mes</label>
+  <select class="txt" id="hMes"></select>
+  <div class="card" id="hResumen"></div>
+  <div class="card"><h2>📊 Gastos de la casa y variables, mes a mes</h2><div id="hBarras"></div><p class="mini">Sin contar pagos fijos ni deudas.</p></div>
+  <div class="card"><h2>🔎 Buscar en todas tus compras</h2>
+    <input class="txt" id="hBus" placeholder="Ej.: moto, pollo, lavandina, Stock" autocomplete="off">
+    <div id="hBusRes"></div></div>
+  <div class="card"><h2>🏷 ¿Dónde es más barato?</h2>
+    <p class="sub">Anotá el precio de un producto cada vez que lo compres o lo veas. La app te marca dónde está más barato.</p>
+    <input class="txt" id="prProd" placeholder="Producto (ej.: Aceite 900 ml)" autocomplete="off" style="margin-top:8px">
+    <input class="txt" id="prLugar" placeholder="Dónde (ej.: Despensa Juan, Stock)" autocomplete="off" style="margin-top:8px">
+    <div class="camp"><input class="txt" id="prPrecio" inputmode="numeric" placeholder="Precio (G.)"><button class="btn" type="button" id="prOk">Guardar</button></div>
+    <div id="prList"></div></div>
+</div></section>
+
 <nav class="abajo" aria-label="Secciones">
   <button type="button" class="on" data-p="inicio"><span>🏠</span>Inicio</button>
   <button type="button" data-p="pend"><span>⏳</span>Falta<i class="badge" id="badge" hidden></i></button>
   <button type="button" data-p="deu"><span>💳</span>Deudas</button>
   <button type="button" data-p="mov"><span>📋</span>Movim.</button>
   <button type="button" data-p="fij"><span>🔁</span>Fijos</button>
+  <button type="button" data-p="his"><span>📈</span>Historial</button>
 </nav>
 
 <!-- ============ HOJA: CARGAR / CORREGIR ============ -->
@@ -263,6 +286,8 @@ header.top{background:#04173a;padding-top:4px}
   <input class="monto-in" id="fMonto" inputmode="numeric" autocomplete="off" placeholder="0">
   <label class="lbl" for="fCon">¿En qué?</label>
   <input class="txt" id="fCon" maxlength="120" placeholder="Ej.: pollo, nafta, farmacia" autocomplete="off">
+  <label class="lbl" for="fLugar" id="fLugarL">¿Dónde? (opcional)</label>
+  <input class="txt" id="fLugar" maxlength="60" placeholder="Ej.: Despensa Juan, Stock, taller" autocomplete="off">
   <span class="lbl">Categoría</span>
   <div class="chips" id="fCats"></div>
   <span class="lbl" id="fEstL">¿Ya lo pagaste?</span>
@@ -537,6 +562,7 @@ function guardarMov(m) {
   var previo = S.movs[id] || {};
   var doc = { fecha: fecha, vence: fecha, tipo: m.tipo, concepto: String(m.concepto || m.cat || '').slice(0, 120), cat: m.cat || 'Otros',
     monto: Number(m.monto), estado: m.estado, mes: mes, creado: previo.creado || Date.now() };
+  if (m.lugar != null) doc.lugar = String(m.lugar).slice(0, 60); else if (previo.lugar) doc.lugar = previo.lugar;
   if (m.estado === 'Pagado' || m.estado === 'Cobrado') { doc.cuenta = m.cuenta != null ? m.cuenta : (previo.cuenta || ''); doc.tPago = previo.tPago || Date.now(); }
   return db.collection('movs').doc(id).set(doc);
 }
@@ -687,7 +713,7 @@ function pintar() {
   $('deuPag').textContent = gs(pag); $('deuFal').textContent = gs(fal); $('deuTot').textContent = gs(tt);
   $('deuBar').style.width = (pag + fal ? pag / (pag + fal) * 100 : 0) + '%';
 
-  pintarMovs(); pintarFijos();
+  pintarMovs(); pintarFijos(); pintarHist();
 }
 function tarjetaCard(d, est, cls) {
   var saldo = d.saldo != null && d.saldo !== '' ? Number(d.saldo) : null;
@@ -708,7 +734,7 @@ function sum(L) { return L.reduce(function (a, b) { return a + (Number(b.monto) 
 function pintarMovs() {
   var L = R.ultimos.filter(function (x) { return filtro === 'todos' || x.tipo === filtro || x.estado === filtro; });
   $('movList').innerHTML = L.length ? L.map(function (x) {
-    return '<div class="item"><div class="txt"><b>' + esc(x.concepto) + '</b><small>' + fdia(x.fecha) + ' · ' + esc(x.cat) + ' · ' + esc(x.estado) + (x.cuenta === 'Efectivo' ? ' · 💵' : x.cuenta === 'Banco' ? ' · 🏦' : '') + '</small></div><span class="m ' + (x.tipo === 'Gasto' ? 'g' : 'i') + '">' + (x.tipo === 'Gasto' ? '−' : '+') + gs(x.monto) + '</span>' +
+    return '<div class="item"><div class="txt"><b>' + esc(x.concepto) + '</b><small>' + fdia(x.fecha) + ' · ' + esc(x.cat) + ' · ' + esc(x.estado) + (x.cuenta === 'Efectivo' ? ' · 💵' : x.cuenta === 'Banco' ? ' · 🏦' : '') + (x.lugar ? ' · 📍' + esc(x.lugar) : '') + '</small></div><span class="m ' + (x.tipo === 'Gasto' ? 'g' : 'i') + '">' + (x.tipo === 'Gasto' ? '−' : '+') + gs(x.monto) + '</span>' +
       '<button class="chip-btn gris" type="button" data-editar="' + x.id + '" aria-label="Corregir">✏️</button><button class="chip-btn rojo" type="button" data-borrar="' + x.id + '" aria-label="Borrar">🗑</button></div>';
   }).join('') : '<p class="vacio">Sin movimientos.</p>';
 }
@@ -853,7 +879,8 @@ function abrir(tipo, x, fijo) {
   $('hT').textContent = fijo ? 'Nuevo pago fijo' : x ? 'Corregir' : (tipo === 'Gasto' ? 'Gasté' : 'Me pagaron');
   $('fOk').className = 'guardar' + (tipo === 'Ingreso' ? ' i' : '');
   $('fMonto').value = x ? Math.round(x.monto).toLocaleString('es-PY') : '';
-  $('fCon').value = x ? x.concepto : ''; $('fErr').textContent = '';
+  $('fCon').value = x ? x.concepto : ''; $('fErr').textContent = ''; $('fLugar').value = x && x.lugar ? x.lugar : '';
+  $('fLugar').hidden = $('fLugarL').hidden = tipo !== 'Gasto' || !!fijo;
   $('fFecha').value = x ? (x.fecha || hoyISO()) : hoyISO();
   $('fCon').placeholder = tipo === 'Gasto' ? 'Ej.: pollo, nafta, farmacia' : 'Ej.: quincena, trabajo extra';
   $('fEstL').hidden = $('fEst').hidden = F.fijo; $('fFecha').hidden = $('fFechaL').hidden = F.fijo; $('fFijoBox').hidden = !F.fijo; $('fDia').value = '';
@@ -917,11 +944,75 @@ $('fOk').onclick = function () {
     pr = db.collection('fijos').doc(nuevoId('f')).set({ tipo: F.tipo, concepto: $('fCon').value.trim(), cat: F.cat, monto: monto, dia: dia, deuda: '', activo: true });
   } else {
     if (F.estado !== 'Pendiente') recordar(F.cuenta);
-    pr = guardarMov({ id: F.id, tipo: F.tipo, monto: monto, concepto: $('fCon').value.trim(), cat: F.cat, fecha: $('fFecha').value, estado: F.estado, cuenta: F.estado === 'Pendiente' ? '' : F.cuenta });
+    pr = guardarMov({ id: F.id, tipo: F.tipo, monto: monto, concepto: $('fCon').value.trim(), cat: F.cat, fecha: $('fFecha').value, lugar: $('fLugar').value.trim(), estado: F.estado, cuenta: F.estado === 'Pendiente' ? '' : F.cuenta });
   }
   pr.then(function () { cerrarHoja(); toast(F.id ? '✅ Corregido' : '✅ Guardado: ' + gs(monto)); }, function (e) { $('fErr').textContent = 'No se pudo guardar. Revisá internet.'; })
     .then(function () { btn.disabled = false; });
 };
+
+/* ================= historial ================= */
+var CAT_FIJA = ['Vivienda', 'Servicios', 'Préstamo', 'Cuotas', 'Tarjeta', 'Seguro', 'Impuestos'];
+var hMesSel = null, PRECIOS = {};
+function esFijo(m) {
+  if (CAT_FIJA.indexOf(m.cat) >= 0) return true;
+  return lista(S.fijos).some(function (f) { return f.tipo === 'Gasto' && f.concepto === m.concepto; });
+}
+function gastosDe(mes) { return lista(S.movs).filter(function (m) { return m.tipo === 'Gasto' && m.mes === mes && m.estado === 'Pagado'; }); }
+function resumenMes(mes) {
+  var G = gastosDe(mes), r = { total: 0, fijo: 0, vari: 0, cats: {} };
+  G.forEach(function (m) { var v = Number(m.monto) || 0; r.total += v; if (esFijo(m)) r.fijo += v; else { r.vari += v; r.cats[m.cat] = (r.cats[m.cat] || 0) + v; } });
+  return r;
+}
+function mesAnt(ym) { var p = ym.split('-').map(Number); p[1]--; if (p[1] < 1) { p[1] = 12; p[0]--; } return p[0] + '-' + pad(p[1]); }
+function difTxt(a, b) { if (!b) return ''; var d = a - b; if (!d) return ' <span class="mini">(igual)</span>'; return ' <span class="' + (d > 0 ? 'sube' : 'baja') + '">' + (d > 0 ? '▲ +' : '▼ −') + gs(Math.abs(d)).slice(3) + '</span>'; }
+function pintarHist() {
+  var meses = {}; lista(S.movs).forEach(function (m) { if (m.mes) meses[m.mes] = 1; }); if (S.cfg && S.cfg.mes) meses[S.cfg.mes] = 1;
+  var L = Object.keys(meses).sort().reverse();
+  if (!hMesSel || L.indexOf(hMesSel) < 0) hMesSel = L[0];
+  $('hMes').innerHTML = L.map(function (m) { return '<option value="' + m + '"' + (m === hMesSel ? ' selected' : '') + '>' + nombreMes(m) + '</option>'; }).join('');
+  if (!hMesSel) return;
+  var r = resumenMes(hMesSel), ant = mesAnt(hMesSel), ra = meses[ant] ? resumenMes(ant) : null;
+  var cats = Object.keys(r.cats).sort(function (a, b) { return r.cats[b] - r.cats[a]; }), mx = Math.max.apply(null, cats.map(function (k) { return r.cats[k]; }).concat([1]));
+  $('hResumen').innerHTML = '<h2>' + nombreMes(hMesSel) + '</h2>' +
+    '<div class="fila" style="color:var(--tinta)"><span>Gastaste en total</span><b>' + gs(r.total) + '</b></div>' +
+    '<div class="fila" style="margin-top:4px"><span>Pagos fijos y deudas</span><span>' + gs(r.fijo) + '</span></div>' +
+    '<div class="fila" style="color:var(--tinta);margin-top:4px"><span><b>Casa, compras e imprevistos</b></span><b>' + gs(r.vari) + difTxt(r.vari, ra && ra.vari) + '</b></div>' +
+    (ra ? '<p class="mini">Comparado con ' + nombreMes(ant) + ': ▲ rojo = gastaste más, ▼ verde = gastaste menos.</p>' : '') +
+    (cats.length ? cats.map(function (k) {
+      return '<div class="cat"><div class="fila"><span>' + esc(k) + '</span><b>' + gs(r.cats[k]) + difTxt(r.cats[k], ra && (ra.cats[k] || 0)) + '</b></div><div class="barra"><i style="width:' + (r.cats[k] / mx * 100) + '%;background:var(--azul)"></i></div></div>';
+    }).join('') : '<p class="vacio">Sin compras este mes.</p>');
+  var ult = L.slice(0, 6).reverse(), vs = ult.map(function (m) { return resumenMes(m).vari; }), mv = Math.max.apply(null, vs.concat([1]));
+  $('hBarras').innerHTML = ult.map(function (m, i) { return '<div class="hbar"><span>' + nombreMes(m).slice(0, 3) + ' ' + m.slice(2, 4) + '</span><div class="barra"><i style="width:' + (vs[i] / mv * 100) + '%"></i></div><b>' + gs(vs[i]) + '</b></div>'; }).join('');
+  buscar2();
+}
+function buscar2() {
+  var q = $('hBus').value.trim().toLowerCase();
+  if (q.length < 2) { $('hBusRes').innerHTML = ''; return; }
+  var L = lista(S.movs).filter(function (m) { return m.tipo === 'Gasto' && m.estado === 'Pagado' && ((m.concepto || '') + ' ' + (m.cat || '') + ' ' + (m.lugar || '')).toLowerCase().indexOf(q) >= 0; })
+    .sort(function (a, b) { return key(b.fecha) - key(a.fecha); });
+  $('hBusRes').innerHTML = L.length ? '<p class="mini">' + L.length + ' compras · total <b>' + gs(sum(L)) + '</b></p>' + L.slice(0, 80).map(function (m) {
+    return '<div class="item"><div class="txt"><b>' + esc(m.concepto) + '</b><small>' + fdia(m.fecha) + '/' + m.fecha.slice(2, 4) + ' · ' + esc(m.cat) + (m.lugar ? ' · 📍' + esc(m.lugar) : '') + '</small></div><span class="m g">' + gs(m.monto) + '</span></div>';
+  }).join('') : '<p class="vacio">No encontré compras con esa palabra.</p>';
+}
+function pintarPrecios() {
+  var g = {}; lista(PRECIOS).forEach(function (p) { var k = String(p.producto || '').trim().toLowerCase(); if (!k) return; (g[k] = g[k] || []).push(p); });
+  var ks = Object.keys(g).sort();
+  $('prList').innerHTML = ks.length ? ks.map(function (k) {
+    var L = g[k].sort(function (a, b) { return a.precio - b.precio; }), min = L[0];
+    return '<div class="card deuda" style="box-shadow:none;border:1px solid var(--linea)"><b>' + esc(min.producto) + '</b>' +
+      '<p class="mini"><span class="ok">✅ Más barato en ' + esc(min.lugar || '¿?') + ': ' + gs(min.precio) + '</span></p>' +
+      L.map(function (p, i) { return '<div class="item"><div class="txt"><b>' + esc(p.lugar || '¿?') + '</b><small>' + fdia(p.fecha) + (i ? ' · ' + gs(p.precio - min.precio) + ' más caro' : '') + '</small></div><span class="m">' + gs(p.precio) + '</span><button class="chip-btn rojo" type="button" data-pr-del="' + p.id + '" aria-label="Borrar">🗑</button></div>'; }).join('') + '</div>';
+  }).join('') : '<p class="vacio">Todavía no anotaste precios.</p>';
+}
+$('hMes').addEventListener('change', function () { hMesSel = this.value; pintarHist(); });
+$('hBus').addEventListener('input', buscar2);
+miles($('prPrecio'));
+$('prOk').onclick = function () {
+  var prod = $('prProd').value.trim(), lugar = $('prLugar').value.trim(), precio = num($('prPrecio').value);
+  if (!prod || !precio) { toast('Poné el producto y el precio'); return; }
+  db.collection('precios').doc(nuevoId('p')).set({ producto: prod, lugar: lugar, precio: precio, fecha: hoyISO() }).then(function () { $('prPrecio').value = ''; toast('✅ Precio guardado'); }, fallo);
+};
+document.body.addEventListener('click', function (e) { var b = e.target.closest('[data-pr-del]'); if (b) db.collection('precios').doc(b.dataset.prDel).delete().catch(fallo); });
 
 /* ================= portada ================= */
 var PORTADA_ORIG = null;
@@ -966,6 +1057,7 @@ function arrancado() {
   suscribir('deudas', db.collection('deudas'));
   suscribir('fijos', db.collection('fijos'));
   suscribir('trans', db.collection('trans'));
+  db.collection('precios').onSnapshot(function (snap) { var o = {}; snap.docs.forEach(function (d) { o[d.id] = d.data(); }); PRECIOS = o; pintarPrecios(); }, function () {});
   PORTADA_ORIG = $('portadaImg').src;
   db.doc('config/portada').onSnapshot(function (snap) { var d = snap.exists ? snap.data() : null; $('portadaImg').src = d && d.img ? d.img : PORTADA_ORIG; }, function () {});
 })();
