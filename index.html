@@ -767,9 +767,15 @@ function tarjetaCard(d, est, cls) {
 }
 function sum(L) { return L.reduce(function (a, b) { return a + (Number(b.monto) || 0); }, 0); }
 function pintarMovs() {
-  var L = R.ultimos.filter(function (x) { return filtro === 'todos' || x.tipo === filtro || x.estado === filtro; });
+  var pend = filtro === 'Pendiente';
+  var L = R.ultimos.filter(function (x) { return pend ? x.estado === 'Pendiente' : (x.estado !== 'Pendiente' && (filtro === 'todos' || x.tipo === filtro)); });
+  if (pend) L.sort(function (a, b) { return key(a.vence || a.fecha) - key(b.vence || b.fecha); });
+  var hoy = hoyISO(), ayer = sumaDias(hoy, -1), ult = '', ahora = Date.now();
   $('movList').innerHTML = L.length ? L.map(function (x) {
-    return '<div class="item"><div class="txt"><b>' + esc(x.concepto) + '</b><small>' + fdia(x.fecha) + ' · ' + esc(x.cat) + ' · ' + esc(x.estado) + (x.cuenta === 'Efectivo' ? ' · 💵' : x.cuenta === 'Banco' ? ' · 🏦' : '') + (x.lugar ? ' · 📍' + esc(x.lugar) : '') + (x.creo && x.creo !== 'Sistema' ? ' · 👤 ' + esc(x.creo) : '') + (x.por && x.por !== x.creo && x.por !== 'Sistema' ? ' · ✏️ ' + esc(x.por) : '') + '</small></div><span class="m ' + (x.tipo === 'Gasto' ? 'g' : 'i') + '">' + (x.tipo === 'Gasto' ? '−' : '+') + gs(x.monto) + '</span>' +
+    var f = pend ? '' : x.fecha, cab = '';
+    if (!pend && f !== ult) { ult = f; var tot = sum(L.filter(function (y) { return y.fecha === f && y.tipo === 'Gasto'; })); cab = '<div class="fila" style="margin:14px 0 2px;color:var(--suave);font-weight:700;font-size:13px"><span>' + (f === hoy ? 'HOY' : f === ayer ? 'AYER' : fdia(f) + '/' + f.slice(2, 4)) + '</span><span>' + (tot ? '−' + gs(tot) : '') + '</span></div>'; }
+    var nuevo = (x.porT || (x.creado > 1e12 ? x.creado : 0)) > ahora - 86400000;
+    return cab + '<div class="item"' + (nuevo ? ' style="background:#eef6ff;border-radius:10px;padding-left:6px"' : '') + '><div class="txt"><b>' + (nuevo ? '🆕 ' : '') + esc(x.concepto) + '</b><small>' + (pend ? 'Vence ' + fdia(x.vence || x.fecha) + ' · ' : '') + esc(x.cat) + (x.cuenta === 'Efectivo' ? ' · 💵' : x.cuenta === 'Banco' ? ' · 🏦' : '') + (x.lugar ? ' · 📍' + esc(x.lugar) : '') + (x.creo && x.creo !== 'Sistema' ? ' · 👤 ' + esc(x.creo) : '') + (x.por && x.por !== x.creo && x.por !== 'Sistema' ? ' · ✏️ ' + esc(x.por) : '') + '</small></div><span class="m ' + (x.tipo === 'Gasto' ? 'g' : 'i') + '">' + (x.tipo === 'Gasto' ? '−' : '+') + gs(x.monto) + '</span>' +
       '<button class="chip-btn gris" type="button" data-editar="' + x.id + '" aria-label="Corregir">✏️</button><button class="chip-btn rojo" type="button" data-borrar="' + x.id + '" aria-label="Borrar">🗑</button></div>';
   }).join('') : '<p class="vacio">Sin movimientos.</p>';
 }
