@@ -179,10 +179,12 @@ header.top{background:#04173a;padding-top:4px}
       <div hidden><input id="realIn"><button type="button" id="realOk"></button></div>
     </div>
     <div class="card">
-      <h2>🛒 Comida del mes</h2>
+      <h2>🛒 Mercadería del mes</h2>
       <div class="barra"><i id="comBar"></i></div>
       <div class="fila"><span id="comGas">–</span><span id="comLim">–</span></div>
       <p class="mini" id="comMsg"></p>
+      <details style="margin-top:8px"><summary class="mini" style="cursor:pointer">🧾 Ver qué compré este mes</summary><div id="comList"></div></details>
+      <div class="camp"><input class="txt" id="comLimIn" inputmode="numeric" placeholder="Cambiar límite mensual"><button class="btn claro" type="button" id="comLimOk">✓</button></div>
     </div>
     <div class="card">
       <h2>📊 En qué se fue la plata</h2>
@@ -644,6 +646,9 @@ function pintar() {
   var a = '';
   if (r.vencidos.length) a += '<div class="card alerta"><h2>⚠️ Vencidos (' + r.vencidos.length + ') — ' + gs(sum(r.vencidos)) + '</h2>' + r.vencidos.map(itemPend).join('') + '</div>';
   if (r.proximos.length) a += '<div class="card"><h2>🔔 Vence esta semana</h2>' + r.proximos.map(itemPend).join('') + '</div>';
+  var cm = r.comida;
+  if (cm.limite && cm.gastado > cm.limite) a = '<div class="card alerta"><h2>🚨 Te pasaste de la mercadería</h2><p class="sub">Gastaste <b>' + gs(cm.gastado) + '</b> de ' + gs(cm.limite) + '. Te pasaste <b class="mal">' + gs(cm.gastado - cm.limite) + '</b>, que ya sale de tu saldo libre.</p></div>' + a;
+  else if (cm.limite && cm.gastado >= cm.limite * 0.8) a = '<div class="card" style="border-left:5px solid var(--espera)"><h2 style="color:#8a5f00">⚠️ Cuidado con la mercadería</h2><p class="sub">Ya usaste el <b>' + Math.round(cm.gastado / cm.limite * 100) + '%</b>. Te quedan <b>' + gs(cm.limite - cm.gastado) + '</b> para el resto del mes.</p></div>' + a;
   if (!a) a = '<div class="card"><h2 class="ok">✅ Estás al día</h2><p class="sub">No tenés nada vencido ni nada que venza esta semana.</p></div>';
   $('alertas').innerHTML = a;
 
@@ -672,7 +677,9 @@ function pintar() {
   var c = r.comida, pct = c.limite ? Math.min(100, c.gastado / c.limite * 100) : 0, queda = c.limite - c.gastado;
   $('comBar').style.width = pct + '%'; $('comBar').className = pct >= 100 ? 'pasado' : pct >= 80 ? 'cuidado' : '';
   $('comGas').textContent = 'Gastaste ' + gs(c.gastado); $('comLim').textContent = 'de ' + gs(c.limite);
-  $('comMsg').innerHTML = queda >= 0 ? 'Te quedan <b>' + gs(queda) + '</b> para comida este mes.' : '<span class="mal">Te pasaste ' + gs(-queda) + ' del presupuesto.</span>';
+  $('comMsg').innerHTML = queda >= 0 ? '✅ No te pasaste. Te quedan <b>' + gs(queda) + '</b> para mercadería este mes.' : '<span class="mal">🚨 Te pasaste ' + gs(-queda) + '. Eso ya sale de tu saldo libre.</span>';
+  var CL = r.ultimos.filter(function (x) { return x.tipo === 'Gasto' && x.cat === 'Alimentación'; });
+  $('comList').innerHTML = CL.length ? CL.map(function (x) { return '<div class="item"><div class="txt"><b>' + esc(x.concepto) + '</b><small>' + fdia(x.fecha) + (x.lugar ? ' · 📍' + esc(x.lugar) : '') + (x.estado !== 'Pagado' ? ' · ' + esc(x.estado) : '') + '</small></div><span class="m g">' + gs(x.monto) + '</span></div>'; }).join('') : '<p class="vacio">Todavía no hay compras de mercadería.</p>';
 
   var max = Math.max.apply(null, r.categorias.map(function (x) { return x[1] + x[2]; }).concat([1]));
   $('cats').innerHTML = r.categorias.length ? r.categorias.map(function (x) {
@@ -946,7 +953,14 @@ $('fOk').onclick = function () {
     if (F.estado !== 'Pendiente') recordar(F.cuenta);
     pr = guardarMov({ id: F.id, tipo: F.tipo, monto: monto, concepto: $('fCon').value.trim(), cat: F.cat, fecha: $('fFecha').value, lugar: $('fLugar').value.trim(), estado: F.estado, cuenta: F.estado === 'Pendiente' ? '' : F.cuenta });
   }
-  pr.then(function () { cerrarHoja(); toast(F.id ? '✅ Corregido' : '✅ Guardado: ' + gs(monto)); }, function (e) { $('fErr').textContent = 'No se pudo guardar. Revisá internet.'; })
+  pr.then(function () {
+    cerrarHoja();
+    var cmx = calc().comida;
+    if (!F.fijo && F.tipo === 'Gasto' && F.cat === 'Alimentación' && cmx.limite) {
+      var q = cmx.limite - cmx.gastado;
+      toast(q >= 0 ? '✅ Guardado · te quedan ' + gs(q) + ' de mercadería' : '🚨 Guardado · te pasaste ' + gs(-q) + ' de mercadería');
+    } else toast(F.id ? '✅ Corregido' : '✅ Guardado: ' + gs(monto));
+  }, function (e) { $('fErr').textContent = 'No se pudo guardar. Revisá internet.'; })
     .then(function () { btn.disabled = false; });
 };
 
@@ -1004,6 +1018,8 @@ function pintarPrecios() {
       L.map(function (p, i) { return '<div class="item"><div class="txt"><b>' + esc(p.lugar || '¿?') + '</b><small>' + fdia(p.fecha) + (i ? ' · ' + gs(p.precio - min.precio) + ' más caro' : '') + '</small></div><span class="m">' + gs(p.precio) + '</span><button class="chip-btn rojo" type="button" data-pr-del="' + p.id + '" aria-label="Borrar">🗑</button></div>'; }).join('') + '</div>';
   }).join('') : '<p class="vacio">Todavía no anotaste precios.</p>';
 }
+miles($('comLimIn'));
+$('comLimOk').onclick = function () { var v = num($('comLimIn').value); if (!v) return; db.doc('config/main').update({ limite: v }).then(function () { $('comLimIn').value = ''; toast('✅ Límite de mercadería: ' + gs(v)); }, fallo); };
 $('hMes').addEventListener('change', function () { hMesSel = this.value; pintarHist(); });
 $('hBus').addEventListener('input', buscar2);
 miles($('prPrecio'));
