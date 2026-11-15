@@ -113,6 +113,7 @@ nav.abajo .badge{position:absolute;top:2px;left:55%;background:var(--sale);color
 
 nav.abajo{grid-template-columns:repeat(6,1fr)}
 nav.abajo button{font-size:11px}
+details>summary{cursor:pointer;list-style:none;padding:6px 0;color:var(--azul);font-weight:600}details>summary::-webkit-details-marker{display:none}
 .hbar{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px}.hbar span{width:70px;color:var(--suave)}.hbar .barra{flex:1;margin:0;height:12px}.hbar b{width:110px;text-align:right}
 .sube{color:var(--sale);font-weight:700}.baja{color:var(--entra);font-weight:700}
 [hidden]{display:none!important}
@@ -150,9 +151,9 @@ header.top{background:#04173a;padding-top:4px}
     <div class="saldo-lbl" id="saldoLbl">Plata disponible según lo cargado</div>
     <div class="saldo" id="saldo">–</div>
     <div class="trio">
-      <div><span>Me falta cobrar</span><b id="porCobrar">–</b></div>
-      <div><span>Me falta pagar</span><b id="porPagar">–</b></div>
-      <div><span>Me sobra a fin de mes</span><b id="proy">–</b></div>
+      <div><span>Cobrar</span><b id="porCobrar">–</b></div>
+      <div><span>Pagar</span><b id="porPagar">–</b></div>
+      <div><span>Sobra</span><b id="proy">–</b></div>
     </div>
     <div class="saldo-lbl" id="libre" style="font-size:14px"></div>
   </div></header>
@@ -163,13 +164,13 @@ header.top{background:#04173a;padding-top:4px}
     </div>
     <div id="alertas"></div>
     <div class="card">
-      <h2>💰 Ingresos del mes</h2>
+      <h2>💰 Ingresos</h2>
       <div class="barra"><i id="ingBar"></i></div>
       <div class="fila"><span id="ingCob">–</span><span id="ingTot">–</span></div>
       <div id="ingList"></div>
     </div>
     <div class="card" id="real">
-      <h2>💰 Mi plata</h2>
+      <h2>💵 Mi plata</h2>
       <div id="plata"></div>
       <div class="dos" id="trBox" style="margin-top:10px" hidden>
         <button type="button" id="trSaque">🏧 Saqué del cajero</button>
@@ -180,62 +181,58 @@ header.top{background:#04173a;padding-top:4px}
       <div hidden><input id="realIn"><button type="button" id="realOk"></button></div>
     </div>
     <div class="card">
-      <h2>🛒 Mercadería del mes</h2>
+      <h2>🛒 Mercadería</h2>
       <div class="barra"><i id="comBar"></i></div>
       <div class="fila"><span id="comGas">–</span><span id="comLim">–</span></div>
       <p class="mini" id="comMsg"></p>
-      <details style="margin-top:8px"><summary class="mini" style="cursor:pointer">🧾 Ver qué compré este mes</summary><div id="comList"></div></details>
-      <div class="camp"><input class="txt" id="comLimIn" inputmode="numeric" placeholder="Cambiar límite mensual"><button class="btn claro" type="button" id="comLimOk">✓</button></div>
+      <details style="margin-top:8px"><summary class="mini" style="cursor:pointer">🧾 Ver compras</summary><div id="comList"></div></details>
+      <div class="camp"><input class="txt" id="comLimIn" inputmode="numeric" placeholder="Límite"><button class="btn claro" type="button" id="comLimOk">✓</button></div>
     </div>
     <div class="card">
-      <h2>📊 En qué se fue la plata</h2>
+      <h2>📊 Gastos</h2>
       <div id="cats"></div>
-      <p class="mini">Azul = ya pagado · Amarillo = falta pagar</p>
     </div>
-    <div class="card">
+    <details class="card"><summary><h2 style="display:inline">⚙️ Ajustes</h2></summary>
+    <div style="margin-top:14px">
       <h2>📅 Fin de mes</h2>
-      <p class="sub">Cuando empieza un mes nuevo, la app lo cierra sola al abrirla: pasa tu saldo, deja lo pendiente como pendiente, carga los pagos fijos y descuenta las cuotas pagadas.</p>
       <button class="btn claro ancho" type="button" id="cerrar">Cerrar el mes ahora</button>
     </div>
-    <div class="card">
-      <h2>📲 Instalar en tu celular o compu</h2>
-      <p class="sub">En Chrome tocá ⋮ → "Instalar app" (o "Agregar a pantalla principal"). Te queda el ícono de ControlTotal.</p>
+    <div style="margin-top:14px">
+      <h2>🔐 Cuenta</h2>
       <button class="btn claro ancho" type="button" onclick="ctSalir()">Cerrar sesión</button>
     </div>
-    <div class="card">
+    <div style="margin-top:14px">
       <h2>🖼 Portada</h2>
-      <p class="sub">Elegí una foto o logo para la parte de arriba. Queda mejor si es horizontal.</p>
       <label class="btn claro ancho" style="display:block;text-align:center;cursor:pointer" for="portadaIn">Cambiar portada</label>
       <input type="file" id="portadaIn" accept="image/*" hidden>
       <button class="btn claro ancho" type="button" id="portadaReset">Volver a la portada original</button>
     </div>
+    </details>
   </div>
 </section>
 
 <!-- ============ PENDIENTES ============ -->
 <section class="pant" id="p-pend"><div class="wrap">
-  <div class="titulo">Lo que falta</div>
-  <p class="sub">Tocá el botón cuando pagues o cobres.</p>
+  <div class="titulo">Falta</div>
   <div id="pendList"></div>
 </div></section>
 
 <!-- ============ DEUDAS ============ -->
 <section class="pant" id="p-deu"><div class="wrap">
-  <div class="titulo">Deudas y cuotas</div>
+  <div class="titulo">Deudas</div>
   <div class="card">
-    <div class="fila" style="color:var(--tinta)"><span>Este mes ya pagaste</span><b id="deuPag">–</b></div>
+    <div class="fila" style="color:var(--tinta)"><span>Pagado</span><b id="deuPag">–</b></div>
     <div class="barra"><i id="deuBar"></i></div>
-    <div class="fila" style="color:var(--tinta)"><span>Te falta pagar este mes</span><b id="deuFal" class="mal">–</b></div>
-    <div class="fila" style="color:var(--tinta);margin-top:10px"><span>Debés en total (lo cargado)</span><b id="deuTot">–</b></div>
+    <div class="fila" style="color:var(--tinta)"><span>Falta</span><b id="deuFal" class="mal">–</b></div>
+    <div class="fila" style="color:var(--tinta);margin-top:10px"><span>Debo en total</span><b id="deuTot">–</b></div>
   </div>
-  <button class="btn ancho" type="button" id="deuNuevo">+ Nuevo préstamo (Mango u otro)</button>
+  <button class="btn ancho" type="button" id="deuNuevo">+ Nuevo préstamo</button>
   <div id="deuList"></div>
 </div></section>
 
 <!-- ============ MOVIMIENTOS ============ -->
 <section class="pant" id="p-mov"><div class="wrap">
-  <div class="titulo">Movimientos del mes</div>
-  <p class="sub">Tocá ✏️ para corregir o 🗑 para borrar.</p>
+  <div class="titulo">Movimientos</div>
   <div class="filtros" id="movFil">
     <button type="button" class="on" data-f="todos">Todos</button>
     <button type="button" data-f="Gasto">Gastos</button>
@@ -247,8 +244,7 @@ header.top{background:#04173a;padding-top:4px}
 
 <!-- ============ FIJOS ============ -->
 <section class="pant" id="p-fij"><div class="wrap">
-  <div class="titulo">Pagos fijos</div>
-  <p class="sub">Esto se carga solo cada mes como pendiente. Cambiá el monto y tocá ✓, o apagalo si ya no va.</p>
+  <div class="titulo">Fijos</div>
   <div class="card" id="fijList"></div>
   <button class="btn ancho" type="button" id="fijNuevo">+ Agregar pago fijo</button>
 </div></section>
@@ -256,19 +252,17 @@ header.top{background:#04173a;padding-top:4px}
 <!-- ============ HISTORIAL ============ -->
 <section class="pant" id="p-his"><div class="wrap">
   <div class="titulo">Historial</div>
-  <p class="sub">Cuánto gastaste cada mes, en qué y comparado con el mes anterior.</p>
   <label class="lbl" for="hMes">Mes</label>
   <select class="txt" id="hMes"></select>
   <div class="card" id="hResumen"></div>
-  <div class="card"><h2>📊 Gastos de la casa y variables, mes a mes</h2><div id="hBarras"></div><p class="mini">Sin contar pagos fijos ni deudas.</p></div>
-  <div class="card"><h2>🔎 Buscar en todas tus compras</h2>
-    <input class="txt" id="hBus" placeholder="Ej.: moto, pollo, lavandina, Stock" autocomplete="off">
+  <div class="card"><h2>📊 Casa, últimos meses</h2><div id="hBarras"></div></div>
+  <div class="card"><h2>🔎 Buscar</h2>
+    <input class="txt" id="hBus" placeholder="Ej.: moto, pollo" autocomplete="off">
     <div id="hBusRes"></div></div>
-  <div class="card"><h2>🏷 ¿Dónde es más barato?</h2>
-    <p class="sub">Anotá el precio de un producto cada vez que lo compres o lo veas. La app te marca dónde está más barato.</p>
-    <input class="txt" id="prProd" placeholder="Producto (ej.: Aceite 900 ml)" autocomplete="off" style="margin-top:8px">
-    <input class="txt" id="prLugar" placeholder="Dónde (ej.: Despensa Juan, Stock)" autocomplete="off" style="margin-top:8px">
-    <div class="camp"><input class="txt" id="prPrecio" inputmode="numeric" placeholder="Precio (G.)"><button class="btn" type="button" id="prOk">Guardar</button></div>
+  <div class="card"><h2>🏷 Más barato</h2>
+    <input class="txt" id="prProd" placeholder="Producto" autocomplete="off" style="margin-top:8px">
+    <input class="txt" id="prLugar" placeholder="Lugar" autocomplete="off" style="margin-top:8px">
+    <div class="camp"><input class="txt" id="prPrecio" inputmode="numeric" placeholder="Precio"><button class="btn" type="button" id="prOk">Guardar</button></div>
     <div id="prList"></div></div>
 </div></section>
 
@@ -642,40 +636,40 @@ function pintar() {
   $('porCobrar').textContent = gs(r.porCobrar); $('porPagar').textContent = gs(r.porPagar);
   var real = r.cuentas;
   if (real) { r.saldo = real.total; r.proyectado = real.total + r.porCobrar - r.porPagar; }
-  $('saldoLbl').textContent = real ? 'Plata que tengo hoy (💵 ' + gs(real.efe) + ' · 🏦 ' + gs(real.ban) + ')' : 'Plata disponible según lo cargado';
+  $('saldoLbl').textContent = real ? 'Tengo  ·  💵 ' + gs(real.efe).slice(3) + '  🏦 ' + gs(real.ban).slice(3) : 'Tengo';
   $('saldo').innerHTML = '<small>G.</small>' + Math.round(r.saldo).toLocaleString('es-PY');
   var qMer = Math.max(0, (r.comida.limite || 0) - r.comida.gastado), lib = r.proyectado - qMer;
-  $('libre').innerHTML = r.comida.limite ? '🛒 Separando ' + gs(qMer) + ' para mercadería, te queda libre: <b style="color:' + (lib < 0 ? '#ffb4a8' : '#9ff0b8') + '">' + gs(lib) + '</b>' : '';
+  $('libre').innerHTML = r.comida.limite ? '🛒 Mercadería ' + gs(qMer) + '  ·  Libre <b style="color:' + (lib < 0 ? '#ffb4a8' : '#9ff0b8') + '">' + gs(lib) + '</b>' : '';
   $('proy').textContent = gs(r.proyectado); $('proy').style.color = r.proyectado < 0 ? '#ffb4a8' : '';
   var nAl = r.vencidos.length + r.proximos.filter(function (p) { return p.tipo === 'Gasto'; }).length;
   $('badge').hidden = !nAl; $('badge').textContent = nAl;
 
   var a = '';
-  if (r.vencidos.length) a += '<div class="card alerta"><h2>⚠️ Vencidos (' + r.vencidos.length + ') — ' + gs(sum(r.vencidos)) + '</h2>' + r.vencidos.map(itemPend).join('') + '</div>';
-  if (r.proximos.length) a += '<div class="card"><h2>🔔 Vence esta semana</h2>' + r.proximos.map(itemPend).join('') + '</div>';
+  if (r.vencidos.length) a += '<div class="card alerta"><h2>🚨 Vencido · ' + gs(sum(r.vencidos)) + '</h2>' + r.vencidos.map(itemPend).join('') + '</div>';
+  if (r.proximos.length) a += '<div class="card"><h2>🔔 Esta semana · ' + gs(sum(r.proximos)) + '</h2>' + r.proximos.map(itemPend).join('') + '</div>';
   var cm = r.comida;
-  if (cm.limite && cm.gastado > cm.limite) a = '<div class="card alerta"><h2>🚨 Te pasaste de la mercadería</h2><p class="sub">Gastaste <b>' + gs(cm.gastado) + '</b> de ' + gs(cm.limite) + '. Te pasaste <b class="mal">' + gs(cm.gastado - cm.limite) + '</b>, que ya sale de tu saldo libre.</p></div>' + a;
-  else if (cm.limite && cm.gastado >= cm.limite * 0.8) a = '<div class="card" style="border-left:5px solid var(--espera)"><h2 style="color:#8a5f00">⚠️ Cuidado con la mercadería</h2><p class="sub">Ya usaste el <b>' + Math.round(cm.gastado / cm.limite * 100) + '%</b>. Te quedan <b>' + gs(cm.limite - cm.gastado) + '</b> para el resto del mes.</p></div>' + a;
-  if (!a) a = '<div class="card"><h2 class="ok">✅ Estás al día</h2><p class="sub">No tenés nada vencido ni nada que venza esta semana.</p></div>';
+  if (cm.limite && cm.gastado > cm.limite) a = '<div class="card alerta"><h2>🛒 Mercadería pasada · ' + gs(cm.gastado - cm.limite) + '</h2></div>' + a;
+  else if (cm.limite && cm.gastado >= cm.limite * 0.8) a = '<div class="card" style="border-left:5px solid var(--espera)"><h2 style="color:#8a5f00">🛒 Mercadería ' + Math.round(cm.gastado / cm.limite * 100) + '% · quedan ' + gs(cm.limite - cm.gastado) + '</h2></div>' + a;
+  if (!a) a = '<div class="card"><h2 class="ok">✅ Al día</h2></div>';
   $('alertas').innerHTML = a;
 
   var esp = r.cobrado + r.porCobrar;
   $('ingBar').style.width = (esp ? r.cobrado / esp * 100 : 0) + '%';
-  $('ingCob').textContent = 'Cobraste ' + gs(r.cobrado); $('ingTot').textContent = 'de ' + gs(esp);
+  $('ingCob').textContent = 'Cobrado ' + gs(r.cobrado); $('ingTot').textContent = 'Total ' + gs(esp);
   $('ingList').innerHTML = r.ingresos.length ? r.ingresos.map(function (x) {
-    return '<div class="item"><div class="txt"><b>' + esc(x.concepto) + '</b><small>' + fdia(x.vence || x.fecha) + ' · ' + esc(x.cat) + '</small></div><span class="m i">' + gs(x.monto) + '</span>' +
-      (x.estado === 'Pendiente' ? '<button class="chip-btn" type="button" data-pagar="' + x.id + '">Ya lo cobré</button>' : '<span class="estado e-ok">Cobrado</span>') + '</div>';
+    return '<div class="item"><div class="txt"><b>' + esc(x.concepto) + '</b><small>' + fdia(x.vence || x.fecha) + '</small></div><span class="m i">' + gs(x.monto) + '</span>' +
+      (x.estado === 'Pendiente' ? '<button class="chip-btn" type="button" data-pagar="' + x.id + '">Cobré</button>' : '<span class="estado e-ok">Cobrado</span>') + '</div>';
   }).join('') : '<p class="vacio">Todavía no hay ingresos este mes.</p>';
 
   var cu = r.cuentas;
   $('plata').innerHTML = cu ? '<div class="nums" style="grid-template-columns:1fr 1fr 1fr"><div><span>💵 Efectivo</span><b>' + gs(cu.efe) + '</b></div><div><span>🏦 Banco</span><b>' + gs(cu.ban) + '</b></div><div><span>Total</span><b>' + gs(cu.total) + '</b></div></div>'
-    : '<p class="sub">Contá una vez cuánto tenés en efectivo y en el banco. Desde ahí la app lleva las dos cuentas sola.</p>';
+    : '';
   $('trBox').hidden = !cu;
   var m = $('realMsg');
   if (r.informado === null) m.textContent = '';
   else {
     var d = r.saldo - r.informado;
-    if (d === 0) m.innerHTML = '<span class="ok">✅ Cuadra perfecto con lo que tenés.</span>';
+    if (d === 0) m.innerHTML = '<span class="ok">✅ Cuadra</span>';
     else if (d > 0) m.innerHTML = '<span class="mal">Tenés ' + gs(d) + ' menos de lo que dice el sistema.</span> Seguro hay gastos sin cargar. Si no te acordás, tocá:<br><button class="btn claro ancho" type="button" id="ajustar">Cargar ' + gs(d) + ' como "gastos sin registrar"</button>';
     else m.innerHTML = '<span class="ok">Tenés ' + gs(-d) + ' más de lo que dice el sistema.</span> Falta cargar algún ingreso. Si no sabés cuál, tocá:<br><button class="btn claro ancho" type="button" id="ajustar">Cargar ' + gs(-d) + ' como "ingreso sin registrar"</button>';
     $('realIn').placeholder = 'Último: ' + Math.round(r.informado).toLocaleString('es-PY');
@@ -683,8 +677,8 @@ function pintar() {
 
   var c = r.comida, pct = c.limite ? Math.min(100, c.gastado / c.limite * 100) : 0, queda = c.limite - c.gastado;
   $('comBar').style.width = pct + '%'; $('comBar').className = pct >= 100 ? 'pasado' : pct >= 80 ? 'cuidado' : '';
-  $('comGas').textContent = 'Gastaste ' + gs(c.gastado); $('comLim').textContent = 'de ' + gs(c.limite);
-  $('comMsg').innerHTML = queda >= 0 ? '✅ No te pasaste. Te quedan <b>' + gs(queda) + '</b> para mercadería este mes.' : '<span class="mal">🚨 Te pasaste ' + gs(-queda) + '. Eso ya sale de tu saldo libre.</span>';
+  $('comGas').textContent = 'Gastado ' + gs(c.gastado); $('comLim').textContent = 'Límite ' + gs(c.limite);
+  $('comMsg').innerHTML = queda >= 0 ? '✅ Quedan <b>' + gs(queda) + '</b>' : '<span class="mal">🚨 Pasado ' + gs(-queda) + '</span>';
   var CL = r.ultimos.filter(function (x) { return x.tipo === 'Gasto' && x.cat === 'Alimentación'; });
   $('comList').innerHTML = CL.length ? CL.map(function (x) { return '<div class="item"><div class="txt"><b>' + esc(x.concepto) + '</b><small>' + fdia(x.fecha) + (x.lugar ? ' · 📍' + esc(x.lugar) : '') + (x.estado !== 'Pagado' ? ' · ' + esc(x.estado) : '') + '</small></div><span class="m g">' + gs(x.monto) + '</span></div>'; }).join('') : '<p class="vacio">Todavía no hay compras de mercadería.</p>';
 
@@ -708,21 +702,21 @@ function pintar() {
     else if (d.estadoMes === 'Pendiente') {
       fal += Number(d.cuota) || 0;
       var venc = Number(d.dia) && Number(r.hoy.slice(8, 10)) > Number(d.dia);
-      est = venc ? '⚠️ Vencida — falta pagar' : '⏳ Falta pagar (vence el ' + esc(d.dia) + ')'; cls = venc ? 'e-venc' : 'e-pend';
+      est = venc ? '🚨 Vencida' : '⏳ Falta'; cls = venc ? 'e-venc' : 'e-pend';
     } else if (!d.esTarjeta && ((d.faltan === 0) || (d.saldo != null && d.saldo !== '' && Number(d.saldo) <= 0))) { est = '🎉 Cancelada'; cls = 'e-ok'; }
     else { est = 'Sin cuota este mes'; cls = 'e-na'; }
     var total = d.actual && d.faltan ? Number(d.actual) + Number(d.faltan) : null;
     if (d.esTarjeta) return tarjetaCard(d, est, cls);
     return '<div class="card deuda"><div class="fila" style="color:var(--tinta)"><b>' + esc(d.nombre) + '</b><span>' + esc(d.tipo) + '</span></div>' +
       '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;justify-content:space-between"><span class="estado ' + cls + '">' + est + '</span>' +
-      (d.estadoMes === 'Pendiente' && !d.espera ? '<button class="chip-btn" type="button" data-pagar="' + d.mov + '">Ya lo pagué</button>' : '') + '</div>' +
-      '<div class="nums"><div><span>Cuota</span><b>' + gs(d.cuota) + '</b></div><div><span>Vence el día</span><b>' + esc(d.dia) + '</b></div>' +
-      '<div><span>Faltan</span><b>' + (d.faltan ? d.faltan + ' cuotas' : '–') + '</b></div></div>' +
-      (total ? '<div class="barra" style="height:8px"><i style="width:' + Math.round(d.actual / total * 100) + '%"></i></div><p class="mini">Vas por la cuota ' + d.actual + ' de ' + total + '</p>' : '') +
-      (d.yaPagado ? '<p class="mini">Ya pagaste aprox. <b class="ok">' + gs(d.yaPagado) + '</b></p>' : '') +
-      (d.deuda ? '<p class="mini">Te falta para cancelar: <b class="mal">' + gs(d.deuda) + '</b>' + (d.fin ? ' · se cancela aprox. en <b>' + d.fin + '</b>' : '') + '</p>' : '') +
-      '<div class="camp"><input class="txt" inputmode="numeric" placeholder="¿Cuántas cuotas faltan?" data-faltan-in="' + d.id + '" value="' + (d.faltan || '') + '"><button class="btn claro" type="button" data-faltan="' + d.id + '">✓</button></div>' +
-      '<div class="camp"><input class="txt" inputmode="numeric" placeholder="Cambiar cuota" data-cuota-in="' + d.id + '"><button class="btn claro" type="button" data-cuota="' + d.id + '">✓</button></div>' + '<button class="chip-btn gris" type="button" style="margin-top:8px" data-espera="' + d.id + '">' + (d.espera ? '▶ Reactivar' : '⏸ Poner en espera') + '</button>' + '</div>';
+      (d.estadoMes === 'Pendiente' && !d.espera ? '<button class="chip-btn" type="button" data-pagar="' + d.mov + '">Pagué</button>' : '') + '</div>' +
+      '<div class="nums"><div><span>Cuota</span><b>' + gs(d.cuota) + '</b></div><div><span>Día</span><b>' + esc(d.dia) + '</b></div>' +
+      '<div><span>Faltan</span><b>' + (d.faltan || '–') + '</b></div></div>' +
+      (total ? '<div class="barra" style="height:8px"><i style="width:' + Math.round(d.actual / total * 100) + '%"></i></div><p class="mini">Cuota ' + d.actual + '/' + total + '</p>' : '') +
+      (d.yaPagado ? '<p class="mini">Pagado <b class="ok">' + gs(d.yaPagado) + '</b></p>' : '') +
+      (d.deuda ? '<p class="mini">Falta <b class="mal">' + gs(d.deuda) + '</b>' + (d.fin ? ' · Fin <b>' + d.fin + '</b>' : '') + '</p>' : '') +
+      '<details><summary class="mini">✏️ Editar</summary><div class="camp"><input class="txt" inputmode="numeric" placeholder="Cuotas que faltan" data-faltan-in="' + d.id + '" value="' + (d.faltan || '') + '"><button class="btn claro" type="button" data-faltan="' + d.id + '">✓</button></div>' +
+      '<div class="camp"><input class="txt" inputmode="numeric" placeholder="Cuota" data-cuota-in="' + d.id + '"><button class="btn claro" type="button" data-cuota="' + d.id + '">✓</button></div>' + '<button class="chip-btn gris" type="button" style="margin-top:8px" data-espera="' + d.id + '">' + (d.espera ? '▶ Reactivar' : '⏸ En espera') + '</button></details>' + '</div>';
   }).join('');
   $('deuPag').textContent = gs(pag); $('deuFal').textContent = gs(fal); $('deuTot').textContent = gs(tt);
   $('deuBar').style.width = (pag + fal ? pag / (pag + fal) * 100 : 0) + '%';
@@ -736,13 +730,12 @@ function tarjetaCard(d, est, cls) {
   return '<div class="card deuda"><div class="fila" style="color:var(--tinta)"><b>' + esc(d.nombre) + '</b><span>Tarjeta</span></div>' +
     '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;justify-content:space-between"><span class="estado ' + cls + '">' + est + '</span>' +
     (d.estadoMes === 'Pendiente' && !d.espera ? '<button class="chip-btn" type="button" data-pagar="' + d.mov + '">Pagué</button>' : '') + '</div>' +
-    '<div class="nums"><div><span>Debés en total</span><b class="mal">' + (saldo != null ? gs(saldo) : '–') + '</b></div><div><span>Mínimo</span><b>' + gs(d.cuota) + '</b></div><div><span>Pagado este mes</span><b class="ok">' + gs(d.pagadoMes) + '</b></div></div>' +
-    (saldo == null ? '<p class="mini">Poné cuánto debés según tu extracto:</p>' : '') +
-    '<div class="camp"><input class="txt" inputmode="numeric" placeholder="Total que debés (extracto)" data-saldo-in="' + d.id + '"><button class="btn claro" type="button" data-saldo="' + d.id + '">✓</button></div>' +
-    '<div class="camp"><input class="txt" inputmode="numeric" placeholder="Compré con la tarjeta (monto)" data-compra-in="' + d.id + '"><button class="btn claro" type="button" data-compra="' + d.id + '">+</button></div>' +
-    '<div class="camp"><input class="txt" inputmode="numeric" placeholder="Si pago por mes…" data-plan-in="' + d.id + '" value="' + (plan ? plan.toLocaleString('es-PY') : '') + '"><button class="btn claro" type="button" data-plan="' + d.id + '">✓</button></div>' +
-    (meses ? '<p class="mini">Pagando <b>' + gs(plan) + '</b> por mes, la cancelás en <b>' + meses + ' ' + (meses === 1 ? 'mes' : 'meses') + '</b> (aprox. ' + finT + ', sin contar intereses).</p>' : '') +
-    '<div class="camp"><input class="txt" inputmode="numeric" placeholder="Cambiar mínimo / cuota" data-cuota-in="' + d.id + '"><button class="btn claro" type="button" data-cuota="' + d.id + '">✓</button></div>' + '<button class="chip-btn gris" type="button" style="margin-top:8px" data-espera="' + d.id + '">' + (d.espera ? '▶ Reactivar' : '⏸ Poner en espera') + '</button>' + '</div>';
+    '<div class="nums"><div><span>Debo</span><b class="mal">' + (saldo != null ? gs(saldo) : '–') + '</b></div><div><span>Mínimo</span><b>' + gs(d.cuota) + '</b></div><div><span>Pagado</span><b class="ok">' + gs(d.pagadoMes) + '</b></div></div>' +
+    (meses ? '<p class="mini">' + gs(plan) + '/mes → <b>' + meses + ' ' + (meses === 1 ? 'mes' : 'meses') + '</b> · Fin ' + finT + '</p>' : '') +
+    '<details><summary class="mini">✏️ Editar</summary><div class="camp"><input class="txt" inputmode="numeric" placeholder="Debo (extracto)" data-saldo-in="' + d.id + '"><button class="btn claro" type="button" data-saldo="' + d.id + '">✓</button></div>' +
+    '<div class="camp"><input class="txt" inputmode="numeric" placeholder="Compré con tarjeta" data-compra-in="' + d.id + '"><button class="btn claro" type="button" data-compra="' + d.id + '">+</button></div>' +
+    '<div class="camp"><input class="txt" inputmode="numeric" placeholder="Pago por mes" data-plan-in="' + d.id + '" value="' + (plan ? plan.toLocaleString('es-PY') : '') + '"><button class="btn claro" type="button" data-plan="' + d.id + '">✓</button></div>' +
+    '<div class="camp"><input class="txt" inputmode="numeric" placeholder="Mínimo" data-cuota-in="' + d.id + '"><button class="btn claro" type="button" data-cuota="' + d.id + '">✓</button></div>' + '<button class="chip-btn gris" type="button" style="margin-top:8px" data-espera="' + d.id + '">' + (d.espera ? '▶ Reactivar' : '⏸ En espera') + '</button></details>' + '</div>';
 }
 function sum(L) { return L.reduce(function (a, b) { return a + (Number(b.monto) || 0); }, 0); }
 function pintarMovs() {
@@ -763,8 +756,8 @@ function pintarFijos() {
   document.querySelectorAll('[data-fijo-in],[data-saldo-in],[data-compra-in],[data-plan-in],[data-cuota-in]').forEach(miles);
 }
 function itemPend(p) {
-  var lbl = p.tipo === 'Ingreso' ? 'Ya lo cobré' : 'Ya lo pagué';
-  return '<div class="item"><div class="txt"><b>' + esc(p.concepto) + '</b><small>' + (p.vence ? 'Vence ' + fdia(p.vence) + ' · ' : '') + esc(p.cat) + '</small></div><span class="m ' + (p.tipo === 'Gasto' ? 'g' : 'i') + '">' + gs(p.monto) + '</span>' +
+  var lbl = p.tipo === 'Ingreso' ? 'Cobré' : 'Pagué';
+  return '<div class="item"><div class="txt"><b>' + esc(p.concepto) + '</b><small>' + (p.vence ? fdia(p.vence) : '') + '</small></div><span class="m ' + (p.tipo === 'Gasto' ? 'g' : 'i') + '">' + gs(p.monto) + '</span>' +
     '<button class="chip-btn" type="button" data-pagar="' + p.id + '">' + lbl + '</button></div>';
 }
 
@@ -995,10 +988,9 @@ function pintarHist() {
   var r = resumenMes(hMesSel), ant = mesAnt(hMesSel), ra = meses[ant] ? resumenMes(ant) : null;
   var cats = Object.keys(r.cats).sort(function (a, b) { return r.cats[b] - r.cats[a]; }), mx = Math.max.apply(null, cats.map(function (k) { return r.cats[k]; }).concat([1]));
   $('hResumen').innerHTML = '<h2>' + nombreMes(hMesSel) + '</h2>' +
-    '<div class="fila" style="color:var(--tinta)"><span>Gastaste en total</span><b>' + gs(r.total) + '</b></div>' +
-    '<div class="fila" style="margin-top:4px"><span>Pagos fijos y deudas</span><span>' + gs(r.fijo) + '</span></div>' +
-    '<div class="fila" style="color:var(--tinta);margin-top:4px"><span><b>Casa, compras e imprevistos</b></span><b>' + gs(r.vari) + difTxt(r.vari, ra && ra.vari) + '</b></div>' +
-    (ra ? '<p class="mini">Comparado con ' + nombreMes(ant) + ': ▲ rojo = gastaste más, ▼ verde = gastaste menos.</p>' : '') +
+    '<div class="fila" style="color:var(--tinta)"><span>Total</span><b>' + gs(r.total) + '</b></div>' +
+    '<div class="fila" style="margin-top:4px"><span>Fijos y deudas</span><span>' + gs(r.fijo) + '</span></div>' +
+    '<div class="fila" style="color:var(--tinta);margin-top:4px"><span><b>Casa y otros</b></span><b>' + gs(r.vari) + difTxt(r.vari, ra && ra.vari) + '</b></div>' +
     (cats.length ? cats.map(function (k) {
       return '<div class="cat"><div class="fila"><span>' + esc(k) + '</span><b>' + gs(r.cats[k]) + difTxt(r.cats[k], ra && (ra.cats[k] || 0)) + '</b></div><div class="barra"><i style="width:' + (r.cats[k] / mx * 100) + '%;background:var(--azul)"></i></div></div>';
     }).join('') : '<p class="vacio">Sin compras este mes.</p>');
@@ -1011,7 +1003,7 @@ function buscar2() {
   if (q.length < 2) { $('hBusRes').innerHTML = ''; return; }
   var L = lista(S.movs).filter(function (m) { return m.tipo === 'Gasto' && m.estado === 'Pagado' && ((m.concepto || '') + ' ' + (m.cat || '') + ' ' + (m.lugar || '')).toLowerCase().indexOf(q) >= 0; })
     .sort(function (a, b) { return key(b.fecha) - key(a.fecha); });
-  $('hBusRes').innerHTML = L.length ? '<p class="mini">' + L.length + ' compras · total <b>' + gs(sum(L)) + '</b></p>' + L.slice(0, 80).map(function (m) {
+  $('hBusRes').innerHTML = L.length ? '<p class="mini">' + L.length + ' · total <b>' + gs(sum(L)) + '</b></p>' + L.slice(0, 80).map(function (m) {
     return '<div class="item"><div class="txt"><b>' + esc(m.concepto) + '</b><small>' + fdia(m.fecha) + '/' + m.fecha.slice(2, 4) + ' · ' + esc(m.cat) + (m.lugar ? ' · 📍' + esc(m.lugar) : '') + '</small></div><span class="m g">' + gs(m.monto) + '</span></div>';
   }).join('') : '<p class="vacio">No encontré compras con esa palabra.</p>';
 }
@@ -1021,8 +1013,8 @@ function pintarPrecios() {
   $('prList').innerHTML = ks.length ? ks.map(function (k) {
     var L = g[k].sort(function (a, b) { return a.precio - b.precio; }), min = L[0];
     return '<div class="card deuda" style="box-shadow:none;border:1px solid var(--linea)"><b>' + esc(min.producto) + '</b>' +
-      '<p class="mini"><span class="ok">✅ Más barato en ' + esc(min.lugar || '¿?') + ': ' + gs(min.precio) + '</span></p>' +
-      L.map(function (p, i) { return '<div class="item"><div class="txt"><b>' + esc(p.lugar || '¿?') + '</b><small>' + fdia(p.fecha) + (i ? ' · ' + gs(p.precio - min.precio) + ' más caro' : '') + '</small></div><span class="m">' + gs(p.precio) + '</span><button class="chip-btn rojo" type="button" data-pr-del="' + p.id + '" aria-label="Borrar">🗑</button></div>'; }).join('') + '</div>';
+      '<p class="mini"><span class="ok">✅ ' + esc(min.lugar || '¿?') + ' · ' + gs(min.precio) + '</span></p>' +
+      L.map(function (p, i) { return '<div class="item"><div class="txt"><b>' + esc(p.lugar || '¿?') + '</b><small>' + fdia(p.fecha) + (i ? ' · +' + gs(p.precio - min.precio).slice(3) : '') + '</small></div><span class="m">' + gs(p.precio) + '</span><button class="chip-btn rojo" type="button" data-pr-del="' + p.id + '" aria-label="Borrar">🗑</button></div>'; }).join('') + '</div>';
   }).join('') : '<p class="vacio">Todavía no anotaste precios.</p>';
 }
 miles($('comLimIn'));
