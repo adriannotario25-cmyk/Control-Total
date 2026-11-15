@@ -132,7 +132,7 @@ header.top{background:#04173a;padding-top:4px}
   <label class="lbl" for="lEmail">Correo</label>
   <input class="txt" id="lEmail" type="email" autocomplete="username" value="adriannotario25@gmail.com">
   <label class="lbl" for="lPass">Contraseña</label>
-  <input class="txt" id="lPass" type="password" autocomplete="current-password">
+  <div class="camp" style="margin-top:0"><input class="txt" id="lPass" type="password" autocomplete="current-password"><button class="btn claro" type="button" id="lVer" aria-label="Mostrar contraseña">👁</button></div>
   <button class="guardar i" type="button" id="lEntrar">Entrar</button>
   <button class="btn claro ancho" type="button" id="lCrear">Es mi primera vez: crear mi contraseña</button>
   <div class="err" id="lErr" aria-live="polite"></div>
@@ -427,6 +427,7 @@ header.top{background:#04173a;padding-top:4px}
   }
   document.getElementById('lEntrar').onclick = function () { entrar(false); };
   document.getElementById('lCrear').onclick = function () { entrar(true); };
+  document.getElementById('lVer').onclick = function () { var p = document.getElementById('lPass'), ver = p.type === 'password'; p.type = ver ? 'text' : 'password'; this.textContent = ver ? '🙈' : '👁'; this.setAttribute('aria-label', ver ? 'Ocultar contraseña' : 'Mostrar contraseña'); };
   sb.auth.getSession().then(function (r) { if (r.data.session) iniciar(r.data.session); else { document.getElementById('login').hidden = false; document.getElementById('cargando').style.display = 'none'; } });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
 })();
