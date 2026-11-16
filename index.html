@@ -37,7 +37,7 @@ header.top .wrap{padding:0}
 .trio b{font-size:14px;white-space:nowrap}
 .card{background:var(--tarjeta);border-radius:16px;padding:16px;margin-top:12px;box-shadow:0 1px 0 var(--linea)}
 .card h2{font-size:17px;margin-bottom:10px}
-.acciones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:-14px}
+.acciones{display:grid;grid-template-columns:1fr;gap:10px;margin-top:-14px}
 .acciones button{border:0;border-radius:16px;padding:18px 10px;font-size:19px;font-weight:700;color:#fff;box-shadow:0 4px 12px rgba(22,32,46,.15)}
 .b-gasto{background:var(--sale)} .b-ingreso{background:var(--entra)}
 .alerta{border-left:5px solid var(--sale)}
@@ -161,7 +161,7 @@ header.top{background:#04173a;padding-top:4px}
   </div></header>
   <div class="wrap">
     <div class="acciones">
-      <button class="b-gasto" type="button" data-nuevo="Gasto">− Gasté</button>
+      <button class="b-gasto" type="button" data-nuevo="Gasto" hidden>− Gasté</button>
       <button class="b-ingreso" type="button" data-nuevo="Ingreso">+ Me pagaron</button>
     </div>
     <div id="alertas"></div>
