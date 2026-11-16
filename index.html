@@ -191,6 +191,11 @@ header.top{background:#04173a;padding-top:4px}
       <div class="camp prot"><input class="txt" id="comLimIn" inputmode="numeric" placeholder="Límite"><button class="btn claro" type="button" id="comLimOk">✓</button></div>
     </div>
     <div class="card">
+      <h2>🎯 Límites</h2>
+      <div id="limList"></div>
+      <div class="camp prot" style="margin-top:10px"><select class="txt" id="limCat"></select><input class="txt" id="limIn" inputmode="numeric" placeholder="Límite"><button class="btn claro" type="button" id="limOk">✓</button></div>
+    </div>
+    <div class="card">
       <h2>📊 Gastos</h2>
       <div id="cats"></div>
     </div>
@@ -229,6 +234,7 @@ header.top{background:#04173a;padding-top:4px}
     <div class="barra"><i id="deuBar"></i></div>
     <div class="fila" style="color:var(--tinta)"><span>Falta</span><b id="deuFal" class="mal">–</b></div>
     <div class="fila" style="color:var(--tinta);margin-top:10px"><span>Debo en total</span><b id="deuTot">–</b></div>
+    <div id="deuProg" style="margin-top:12px"></div>
   </div>
   <button class="btn ancho prot" type="button" id="deuNuevo">+ Nuevo préstamo</button>
   <div id="deuList"></div>
@@ -271,6 +277,7 @@ header.top{background:#04173a;padding-top:4px}
     <div id="prList"></div></div>
 </div></section>
 
+<button type="button" id="fab" aria-label="Anotar gasto" style="position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:8;width:62px;height:62px;border-radius:50%;border:0;background:#d6452e;color:#fff;font-size:34px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.3)">+</button>
 <nav class="abajo" aria-label="Secciones">
   <button type="button" class="on" data-p="inicio"><span>🏠</span>Inicio</button>
   <button type="button" data-p="pend"><span>⏳</span>Falta<i class="badge" id="badge" hidden></i></button>
@@ -489,6 +496,8 @@ header.top{background:#04173a;padding-top:4px}
 var CATEGORIAS = ['Alimentación','Vivienda','Servicios','Transporte','Salud','Limpieza','Higiene personal','Préstamo','Tarjeta','Cuotas','Seguro','Educación','Vestimenta','Entretenimiento','Restaurante','Delivery','Mascotas','Regalos','Impuestos','Ahorro','Extra','Otros'];
 var CAT_INGRESO = ['Salario','Extra','Ventas','Honorarios','Otros'];
 var CAT_DEUDA = ['Préstamo','Cuotas','Tarjeta'];
+var ICO = { 'Alimentación': '🛒', 'Vivienda': '🏠', 'Servicios': '💡', 'Transporte': '🏍', 'Salud': '💊', 'Limpieza': '🧽', 'Higiene personal': '🧴', 'Préstamo': '🏦', 'Tarjeta': '💳', 'Cuotas': '📦', 'Seguro': '🛡', 'Educación': '📚', 'Vestimenta': '👕', 'Entretenimiento': '🎉', 'Restaurante': '🍽', 'Delivery': '🛵', 'Mascotas': '🐶', 'Regalos': '🎁', 'Impuestos': '🧾', 'Ahorro': '🐷', 'Extra': '✨', 'Otros': '•', 'Salario': '💼', 'Ventas': '🏷', 'Honorarios': '🧑‍💻' };
+function ico(c) { return (ICO[c] || '•') + ' ' + c; }
 var TOP_G = ['Alimentación','Transporte','Servicios','Salud','Limpieza','Higiene personal','Restaurante','Extra'];
 var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
@@ -572,6 +581,7 @@ function calc() {
     mes: mes, saldo: saldo, cobrado: s.cobrado, pagado: s.pagado, porCobrar: s.porCobrar, porPagar: s.porPagar,
     proyectado: saldo + s.porCobrar - s.porPagar, informado: cuentas() ? cuentas().total : (c.informado == null ? null : Number(c.informado)), cuentas: cuentas(),
     comida: { limite: Number(c.limite) || 0, gastado: s.comida },
+    limites: Object.keys(c.limites || {}).filter(function (k) { return Number(c.limites[k]) > 0; }).map(function (k) { var g = cats[k] ? cats[k][0] + cats[k][1] : 0; return { cat: k, limite: Number(c.limites[k]), gastado: g }; }),
     categorias: Object.keys(cats).map(function (k) { return [k, cats[k][0], cats[k][1]]; }).sort(function (a, b) { return (b[1] + b[2]) - (a[1] + a[2]); }),
     vencidos: vencidos.sort(orden), proximos: proximos.sort(orden), pendientes: pendientes.sort(orden), ingresos: ingresos.sort(orden),
     ultimos: M.slice().sort(function (a, b) { return key(b.fecha) - key(a.fecha) || (b.creado || 0) - (a.creado || 0); }),
@@ -675,6 +685,10 @@ function pintar() {
   var a = '';
   if (r.vencidos.length) a += '<div class="card alerta"><h2>🚨 Vencido · ' + gs(sum(r.vencidos)) + '</h2>' + r.vencidos.map(itemPend).join('') + '</div>';
   if (r.proximos.length) a += '<div class="card"><h2>🔔 Esta semana · ' + gs(sum(r.proximos)) + '</h2>' + r.proximos.map(itemPend).join('') + '</div>';
+  r.limites.forEach(function (l) {
+    if (l.gastado > l.limite) a = '<div class="card alerta"><h2>' + esc(ico(l.cat)) + ' pasado · ' + gs(l.gastado - l.limite) + '</h2></div>' + a;
+    else if (l.gastado >= l.limite * 0.8) a = '<div class="card" style="border-left:5px solid var(--espera)"><h2 style="color:#8a5f00">' + esc(ico(l.cat)) + ' ' + Math.round(l.gastado / l.limite * 100) + '% · quedan ' + gs(l.limite - l.gastado) + '</h2></div>' + a;
+  });
   var cm = r.comida;
   if (cm.limite && cm.gastado > cm.limite) a = '<div class="card alerta"><h2>🛒 Mercadería pasada · ' + gs(cm.gastado - cm.limite) + '</h2></div>' + a;
   else if (cm.limite && cm.gastado >= cm.limite * 0.8) a = '<div class="card" style="border-left:5px solid var(--espera)"><h2 style="color:#8a5f00">🛒 Mercadería ' + Math.round(cm.gastado / cm.limite * 100) + '% · quedan ' + gs(cm.limite - cm.gastado) + '</h2></div>' + a;
@@ -721,7 +735,7 @@ function pintar() {
   var bloque = function (t, L) { return L.length ? '<div class="grupo">' + t + ' · ' + gs(sum(L)) + '</div><div class="card">' + L.map(itemPend).join('') + '</div>' : ''; };
   $('pendList').innerHTML = (bloque('⚠️ Vencidos', gr.v) + bloque('Esta semana', gr.s) + bloque('Más adelante', gr.l) + bloque('💰 Por cobrar', gr.i)) || '<p class="vacio">¡No falta nada! 🎉</p>';
 
-  var tt = 0, pag = 0, fal = 0;
+  var tt = 0, pag = 0, fal = 0, gT = 0, gP = 0;
   $('deuList').innerHTML = r.deudas.map(function (d) {
     tt += d.deuda || 0;
     var est, cls;
@@ -733,23 +747,26 @@ function pintar() {
       est = venc ? '🚨 Vencida' : '⏳ Falta'; cls = venc ? 'e-venc' : 'e-pend';
     } else if (!d.esTarjeta && ((d.faltan === 0) || (d.saldo != null && d.saldo !== '' && Number(d.saldo) <= 0))) { est = '🎉 Cancelada'; cls = 'e-ok'; }
     else { est = 'Sin cuota este mes'; cls = 'e-na'; }
-    var total = d.actual && d.faltan ? Number(d.actual) + Number(d.faltan) : null;
+    var total = Number(d.tot) || (d.actual && d.faltan ? Number(d.actual) + Number(d.faltan) : null), hechas = total ? Math.max(0, total - Number(d.faltan || 0)) : 0;
+    if (total && !d.espera) { gT += Number(d.cuota) * total; gP += Number(d.cuota) * hechas; }
     if (d.esTarjeta) return tarjetaCard(d, est, cls);
     return '<div class="card deuda"><div class="fila" style="color:var(--tinta)"><b>' + esc(d.nombre) + '</b><span>' + esc(d.tipo) + '</span></div>' +
       '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;justify-content:space-between"><span class="estado ' + cls + '">' + est + '</span>' +
       (d.estadoMes === 'Pendiente' && !d.espera ? '<button class="chip-btn" type="button" data-pagar="' + d.mov + '">Pagué</button>' : '') + '</div>' +
       '<div class="nums"><div><span>Cuota</span><b>' + gs(d.cuota) + '</b></div><div><span>Día</span><b>' + esc(d.dia) + '</b></div>' +
       '<div><span>Faltan</span><b>' + (d.faltan || '–') + '</b></div></div>' +
-      (total ? '<div class="barra" style="height:8px"><i style="width:' + Math.round(d.actual / total * 100) + '%"></i></div><p class="mini">Cuota ' + d.actual + '/' + total + '</p>' : '') +
-      (d.yaPagado ? '<p class="mini">Pagado <b class="ok">' + gs(d.yaPagado) + '</b></p>' : '') +
+      (total ? '<div class="fila" style="margin-top:8px"><span class="mini">' + hechas + ' de ' + total + ' cuotas</span><b class="ok">' + Math.round(hechas / total * 100) + '%</b></div><div class="barra" style="height:12px;margin-top:4px"><i style="width:' + Math.round(hechas / total * 100) + '%;background:var(--entra)"></i></div>' : '') +
+      (total ? '<p class="mini">Pagado <b class="ok">' + gs(Number(d.cuota) * hechas) + '</b></p>' : d.yaPagado ? '<p class="mini">Pagado <b class="ok">' + gs(d.yaPagado) + '</b></p>' : '') +
       (d.deuda ? '<p class="mini">Falta <b class="mal">' + gs(d.deuda) + '</b>' + (d.fin ? ' · Fin <b>' + d.fin + '</b>' : '') + '</p>' : '') +
       '<details class="prot"><summary class="mini">✏️ Editar</summary><div class="camp"><input class="txt" inputmode="numeric" placeholder="Cuotas que faltan" data-faltan-in="' + d.id + '" value="' + (d.faltan || '') + '"><button class="btn claro" type="button" data-faltan="' + d.id + '">✓</button></div>' +
+      '<div class="camp"><input class="txt" inputmode="numeric" placeholder="Cuotas en total" data-tot-in="' + d.id + '" value="' + (total || '') + '"><button class="btn claro" type="button" data-tot="' + d.id + '">✓</button></div>' +
       '<div class="camp"><input class="txt" inputmode="numeric" placeholder="Cuota" data-cuota-in="' + d.id + '"><button class="btn claro" type="button" data-cuota="' + d.id + '">✓</button></div>' + '<button class="chip-btn gris" type="button" style="margin-top:8px" data-espera="' + d.id + '">' + (d.espera ? '▶ Reactivar' : '⏸ En espera') + '</button></details>' + '</div>';
   }).join('');
   $('deuPag').textContent = gs(pag); $('deuFal').textContent = gs(fal); $('deuTot').textContent = gs(tt);
+  $('deuProg').innerHTML = gT ? '<div class="fila" style="color:var(--tinta)"><span>Préstamos y cuotas</span><b class="ok">' + Math.round(gP / gT * 100) + '% pagado</b></div><div class="barra" style="height:14px"><i style="width:' + (gP / gT * 100) + '%;background:var(--entra)"></i></div><div class="fila"><span>Pagado ' + gs(gP) + '</span><span>Falta ' + gs(gT - gP) + '</span></div>' : '';
   $('deuBar').style.width = (pag + fal ? pag / (pag + fal) * 100 : 0) + '%';
 
-  pintarMovs(); pintarFijos(); pintarHist();
+  pintarMovs(); pintarFijos(); pintarHist(); pintarLimites(R);
 }
 function tarjetaCard(d, est, cls) {
   var saldo = d.saldo != null && d.saldo !== '' ? Number(d.saldo) : null;
@@ -819,6 +836,8 @@ document.body.addEventListener('click', function (e) {
   if (b) { var m = Object.assign({ id: b.dataset.editar }, S.movs[b.dataset.editar]); abrir(m.tipo, m); return; }
   b = e.target.closest('[data-nuevo]');
   if (b) { abrir(b.dataset.nuevo); return; }
+  b = e.target.closest('[data-tot]');
+  if (b) { var ti = document.querySelector('[data-tot-in="' + b.dataset.tot + '"]'), tv = num(ti.value), dd = S.deudas[b.dataset.tot]; if (!tv || tv < Number(dd.faltan || 0)) { toast('El total no puede ser menor a las que faltan'); return; } db.collection('deudas').doc(b.dataset.tot).update({ tot: tv }).then(function () { toast('✅ Guardado'); }, fallo); return; }
   b = e.target.closest('[data-faltan]');
   if (b) { var inp = document.querySelector('[data-faltan-in="' + b.dataset.faltan + '"]'); db.collection('deudas').doc(b.dataset.faltan).update({ faltan: num(inp.value) }).then(function () { toast('✅ Guardado'); }, fallo); return; }
   b = e.target.closest('[data-cuota]');
@@ -935,7 +954,7 @@ function dibCats() {
   var L = F.tipo === 'Gasto' ? (F.todas ? CATEGORIAS : TOP_G) : CAT_INGRESO;
   if (L.indexOf(F.cat) < 0) L = L.concat([F.cat]);
   $('fCats').innerHTML = (F.fijo ? '<button type="button" data-tipo="Gasto" class="' + (F.tipo === 'Gasto' ? 'on' : '') + '">Es un pago</button><button type="button" data-tipo="Ingreso" class="' + (F.tipo === 'Ingreso' ? 'on' : '') + '">Es un ingreso</button><br>' : '') +
-    L.map(function (c) { return '<button type="button" data-c="' + esc(c) + '" class="' + (c === F.cat ? 'on' : '') + '">' + esc(c) + '</button>'; }).join('') +
+    L.map(function (c) { return '<button type="button" data-c="' + esc(c) + '" class="' + (c === F.cat ? 'on' : '') + '">' + esc(ico(c)) + '</button>'; }).join('') +
     (F.tipo === 'Gasto' && !F.todas ? '<button type="button" data-c="__mas">Más…</button>' : '');
 }
 function dibEst() {
@@ -965,7 +984,7 @@ $('nOk').onclick = async function () {
   var btn = this; btn.disabled = true;
   var h = hoyISO(), nombre = nom + ' (' + h.slice(8, 10) + '/' + h.slice(5, 7) + ')', yaEsteMes = $('nYa').checked;
   try {
-    await db.collection('deudas').doc(nuevoId('d')).set({ nombre: nombre, tipo: 'Préstamo', cuota: cuota, dia: dia, actual: null, faltan: cant, saldo: cuota * cant });
+    await db.collection('deudas').doc(nuevoId('d')).set({ nombre: nombre, tipo: 'Préstamo', cuota: cuota, dia: dia, actual: null, faltan: cant, tot: cant, saldo: cuota * cant });
     await db.collection('fijos').doc(nuevoId('f')).set({ tipo: 'Gasto', concepto: nombre, cat: 'Préstamo', monto: cuota, dia: dia, deuda: nombre, activo: true });
     if (rec) await guardarMov({ tipo: 'Ingreso', monto: rec, concepto: 'Préstamo recibido - ' + nom, cat: 'Otros', fecha: h, estado: 'Cobrado' });
     if (yaEsteMes) { var p = S.cfg.mes.split('-'), ult = new Date(+p[0], +p[1], 0).getDate(); await guardarMov({ tipo: 'Gasto', monto: cuota, concepto: nombre, cat: 'Préstamo', fecha: S.cfg.mes + '-' + pad(Math.min(dia, ult)), estado: 'Pendiente' }); }
@@ -1020,7 +1039,11 @@ function guardarForm(m, dia) {
     if (!m.fijo && m.tipo === 'Gasto' && m.cat === 'Alimentación' && cmx.limite) {
       var q = cmx.limite - cmx.gastado;
       toast(q >= 0 ? '✅ Guardado · te quedan ' + gs(q) + ' de mercadería' : '🚨 Guardado · te pasaste ' + gs(-q) + ' de mercadería');
-    } else toast(m.id ? '✅ Corregido' : '✅ Guardado: ' + gs(monto));
+    } else {
+      var lx = !m.fijo && m.tipo === 'Gasto' ? calc().limites.filter(function (l) { return l.cat === m.cat; })[0] : null;
+      if (lx) { var q2 = lx.limite - lx.gastado; toast(q2 >= 0 ? '✅ Guardado · quedan ' + gs(q2) + ' de ' + m.cat : '🚨 Guardado · pasaste ' + gs(-q2) + ' en ' + m.cat); }
+      else toast(m.id ? '✅ Corregido' : '✅ Guardado: ' + gs(monto));
+    }
   }, function (e) { $('fErr').textContent = 'No se pudo guardar. Revisá internet.'; })
     .then(function () { btn.disabled = false; });
 }
@@ -1090,6 +1113,21 @@ $('prOk').onclick = function () {
 };
 document.body.addEventListener('click', function (e) { var b = e.target.closest('[data-pr-del]'); if (b) db.collection('precios').doc(b.dataset.prDel).delete().catch(fallo); });
 
+function pintarLimites(r) {
+  $('limList').innerHTML = r.limites.length ? r.limites.map(function (l) {
+    var p = Math.min(100, l.gastado / l.limite * 100), pas = l.gastado > l.limite;
+    return '<div class="cat"><div class="fila"><span>' + esc(ico(l.cat)) + '</span><b' + (pas ? ' class="mal"' : '') + '>' + gs(l.gastado) + ' / ' + gs(l.limite).slice(3) + '</b></div><div class="barra"><i style="width:' + p + '%;background:' + (pas ? 'var(--sale)' : p >= 80 ? 'var(--espera)' : 'var(--entra)') + '"></i></div></div>';
+  }).join('') : '<p class="vacio">Sin límites. Tocá 🔒 para agregar.</p>';
+  var ya = {}; r.limites.forEach(function (l) { ya[l.cat] = 1; });
+  if (!$('limCat').options.length) $('limCat').innerHTML = CATEGORIAS.filter(function (c) { return c !== 'Alimentación' && CAT_DEUDA.indexOf(c) < 0; }).map(function (c) { return '<option value="' + esc(c) + '">' + esc(ico(c)) + '</option>'; }).join('');
+}
+miles($('limIn'));
+$('limOk').onclick = function () {
+  var c = $('limCat').value, v = num($('limIn').value), L = Object.assign({}, (S.cfg && S.cfg.limites) || {});
+  if (v) L[c] = v; else delete L[c];
+  db.doc('config/main').update({ limites: L }).then(function () { $('limIn').value = ''; toast(v ? '✅ Límite ' + c + ': ' + gs(v) : '🗑 Límite quitado'); }, fallo);
+};
+$('fab').onclick = function () { abrir('Gasto'); };
 /* ================= seguridad ================= */
 var LOG = {}, abiertoHasta = 0, PINMODO = '', pin1 = '';
 function soy() { try { return localStorage.getItem('ctQuien') || ''; } catch (e) { return ''; } }
