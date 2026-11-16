@@ -323,6 +323,8 @@ header.top{background:#04173a;padding-top:4px}
   <input class="monto-in" id="pMonto" inputmode="numeric" autocomplete="off">
   <span class="lbl">¿Cómo?</span>
   <div class="dos" id="pCta"></div>
+  <button class="chip-btn" type="button" id="pMixBtn" style="margin-top:10px">💵 + 🏦 Parte y parte</button>
+  <div id="pMix" hidden><label class="lbl" for="pEfe">¿Cuánto en 💵 efectivo?</label><input class="txt" id="pEfe" inputmode="numeric" autocomplete="off"><p class="mini" id="pMixTxt"></p></div>
   <button class="guardar i" type="button" id="pOk">Confirmar</button>
   <button class="btn claro ancho" type="button" id="pCan">Cancelar</button>
 </div>
@@ -903,11 +905,25 @@ function abrirPago(id) {
   $('pCon').textContent = x.concepto;
   $('pMonto').value = Math.round(x.monto).toLocaleString('es-PY');
   P.cuenta = CUENTA; dibCta('pCta', P.cuenta);
+  $('pMix').hidden = true; $('pCta').hidden = false; $('pEfe').value = ''; $('pMixTxt').textContent = '';
   $('velo').classList.add('on'); $('hojaPago').classList.add('on');
 }
+function mixTxt() { var t = num($('pMonto').value), e = num($('pEfe').value); $('pMixTxt').innerHTML = e && e < t ? '💵 ' + gs(e) + ' · 🏦 ' + gs(t - e) : ''; }
+$('pMixBtn').onclick = function () { var on = $('pMix').hidden; $('pMix').hidden = !on; $('pCta').hidden = on; if (on) $('pEfe').focus(); mixTxt(); };
+miles($('pEfe')); $('pEfe').addEventListener('input', mixTxt); $('pMonto').addEventListener('input', mixTxt);
 $('pOk').onclick = function () {
   var btn = this, monto = num($('pMonto').value);
   if (!monto) { toast('Poné el monto'); return; }
+  if (!$('pMix').hidden) {
+    var efe = num($('pEfe').value);
+    if (!efe || efe >= monto) { toast('Poné cuánto fue en efectivo (menos que el total)'); return; }
+    var ban = monto - efe, x = S.movs[P.id], est = P.tipo === 'Ingreso' ? 'Cobrado' : 'Pagado';
+    btn.disabled = true;
+    marcar(P.id, est, efe, 'Efectivo').then(function () {
+      return db.collection('movs').doc(nuevoId('m')).set({ fecha: x.fecha, vence: x.vence || x.fecha, tipo: x.tipo, concepto: x.concepto, cat: x.cat, monto: ban, estado: est, mes: x.mes, creado: Date.now(), cuenta: 'Banco', tPago: Date.now() });
+    }).then(function () { cerrarHoja(); toast('✅ 💵 ' + gs(efe) + ' + 🏦 ' + gs(ban)); }, fallo).then(function () { btn.disabled = false; });
+    return;
+  }
   btn.disabled = true;
   recordar(P.cuenta);
   marcar(P.id, P.tipo === 'Ingreso' ? 'Cobrado' : 'Pagado', monto === Number(P.monto) ? 0 : monto, P.cuenta)
