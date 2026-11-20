@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, interactive-widget=overlays-content">
 <title>ControlTotal</title>
 <meta name="theme-color" content="#04173a">
 <link rel="manifest" href="manifest.json">
@@ -92,7 +92,9 @@ nav.abajo .badge{position:absolute;top:2px;left:55%;background:var(--sale);color
 .filtros button{border:2px solid var(--linea);background:#fff;border-radius:99px;padding:7px 12px;font-size:14px;font-weight:600;white-space:nowrap}
 .filtros button.on{background:var(--azul);border-color:var(--azul);color:#fff}
 .velo{position:fixed;inset:0;background:rgba(22,32,46,.45);display:none;z-index:10}
-.velo.on{display:block}
+.velo.on{display:block;touch-action:none}
+body.fijo{position:fixed;left:0;right:0;overflow:hidden}
+.hoja{overscroll-behavior:contain}
 .bloq .prot{display:none!important}
 .que{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
 .que button{border:1px solid var(--linea);background:var(--fondo);border-radius:16px;padding:14px 10px;text-align:left;display:flex;flex-direction:column;gap:2px;color:var(--tinta)}
@@ -1207,6 +1209,14 @@ $('limOk').onclick = function () {
 };
 var trasPin = null;
 function conPin(fn) { if (!document.body.classList.contains('bloq')) { fn(); return; } trasPin = fn; if (!S.cfg || !S.cfg.pinH) hojaPin('nuevo', 'Creá tu PIN (4 números)'); else hojaPin('abrir', 'PIN para seguir'); }
+(function () {
+  var y = 0, velo = $('velo');
+  new MutationObserver(function () {
+    var on = velo.classList.contains('on'), b = document.body;
+    if (on && !b.classList.contains('fijo')) { y = window.scrollY; b.style.top = -y + 'px'; b.classList.add('fijo'); }
+    else if (!on && b.classList.contains('fijo')) { b.classList.remove('fijo'); b.style.top = ''; window.scrollTo(0, y); }
+  }).observe(velo, { attributes: true, attributeFilter: ['class'] });
+})();
 $('fab').onclick = function () { $('velo').classList.add('on'); $('hojaQue').classList.add('on'); };
 $('queCan').onclick = function () { cerrarHoja(); };
 $('hojaQue').addEventListener('click', function (e) {
