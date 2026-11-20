@@ -94,6 +94,9 @@ nav.abajo .badge{position:absolute;top:2px;left:55%;background:var(--sale);color
 .velo{position:fixed;inset:0;background:rgba(22,32,46,.45);display:none;z-index:10}
 .velo.on{display:block}
 .bloq .prot{display:none!important}
+.que{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.que button{border:1px solid var(--linea);background:var(--fondo);border-radius:16px;padding:14px 10px;text-align:left;display:flex;flex-direction:column;gap:2px;color:var(--tinta)}
+.que span{font-size:28px}.que b{font-size:17px}.que small{font-size:12px;color:var(--suave);line-height:1.25}
 header.top .wrap{position:relative}
 .hoja{visibility:hidden;position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto;transform:translateY(105%);transition:transform .22s ease;z-index:11;max-width:600px;margin:0 auto}
 .hoja.on{transform:none;visibility:visible}
@@ -173,7 +176,7 @@ header.top{background:#04173a;padding-top:4px}
   <div class="wrap">
     <div class="acciones">
       <button class="b-gasto" type="button" data-nuevo="Gasto" hidden>− Gasté</button>
-      <button class="b-ingreso" type="button" data-nuevo="Ingreso">+ Me pagaron</button>
+      <button class="b-ingreso" type="button" data-nuevo="Ingreso" hidden>+ Me pagaron</button>
     </div>
     <div id="alertas"></div>
     <div class="card" hidden>
@@ -381,6 +384,16 @@ header.top{background:#04173a;padding-top:4px}
   <button class="btn claro ancho" type="button" id="cCan">Cancelar</button>
 </div>
 
+<div class="hoja" id="hojaQue" role="dialog" aria-modal="true" aria-labelledby="queT">
+  <h3 id="queT">¿Qué querés anotar?</h3>
+  <div class="que">
+    <button type="button" data-que="gasto"><span>🛒</span><b>Gasto</b><small>Algo que compraste o pagaste hoy</small></button>
+    <button type="button" data-que="ingreso"><span>💰</span><b>Ingreso</b><small>Plata que te entró</small></button>
+    <button type="button" data-que="fijo"><span>🔁</span><b>Pago fijo</b><small>Todos los meses: internet, alquiler…</small></button>
+    <button type="button" data-que="deuda"><span>🏦</span><b>Deuda</b><small>Préstamo o compra en cuotas</small></button>
+  </div>
+  <button class="btn claro ancho" type="button" id="queCan">Cancelar</button>
+</div>
 <div class="hoja" id="hojaPin" role="dialog" aria-modal="true" aria-labelledby="pinT">
   <h3 id="pinT">PIN</h3>
   <input class="txt" id="pinIn" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••" style="font-size:28px;text-align:center;letter-spacing:8px">
@@ -1013,7 +1026,7 @@ function abrir(tipo, x, fijo) {
   dibCats(); dibEst();
   $('velo').classList.add('on'); $('hoja').classList.add('on'); if (!x) setTimeout(function () { $('fMonto').focus(); }, 250);
 }
-function cerrarHoja() { ['hoja', 'hojaPago', 'hojaSi', 'hojaDeu', 'hojaCnt', 'hojaTr', 'hojaPin', 'hojaQuien'].forEach(function (h) { $(h).classList.remove('on'); }); $('velo').classList.remove('on'); }
+function cerrarHoja() { ['hoja', 'hojaPago', 'hojaSi', 'hojaDeu', 'hojaCnt', 'hojaTr', 'hojaPin', 'hojaQuien', 'hojaQue'].forEach(function (h) { $(h).classList.remove('on'); }); $('velo').classList.remove('on'); }
 function dibCats() {
   var L = F.tipo === 'Gasto' ? (F.todas ? CATEGORIAS : TOP_G) : CAT_INGRESO;
   if (L.indexOf(F.cat) < 0) L = L.concat([F.cat]);
@@ -1192,7 +1205,19 @@ $('limOk').onclick = function () {
   if (v) L[c] = v; else delete L[c];
   db.doc('config/main').update({ limites: L }).then(function () { $('limIn').value = ''; toast(v ? '✅ Límite ' + c + ': ' + gs(v) : '🗑 Límite quitado'); }, fallo);
 };
-$('fab').onclick = function () { abrir('Gasto'); };
+var trasPin = null;
+function conPin(fn) { if (!document.body.classList.contains('bloq')) { fn(); return; } trasPin = fn; if (!S.cfg || !S.cfg.pinH) hojaPin('nuevo', 'Creá tu PIN (4 números)'); else hojaPin('abrir', 'PIN para seguir'); }
+$('fab').onclick = function () { $('velo').classList.add('on'); $('hojaQue').classList.add('on'); };
+$('queCan').onclick = function () { cerrarHoja(); };
+$('hojaQue').addEventListener('click', function (e) {
+  var b = e.target.closest('[data-que]'); if (!b) return; var q = b.dataset.que; cerrarHoja();
+  setTimeout(function () {
+    if (q === 'gasto') abrir('Gasto');
+    else if (q === 'ingreso') abrir('Ingreso');
+    else if (q === 'fijo') conPin(function () { $('fijNuevo').onclick(); });
+    else if (q === 'deuda') conPin(function () { $('deuNuevo').onclick(); });
+  }, 260);
+});
 /* ================= papelera / anular ================= */
 var PAPEL = {};
 function aPapelera(id) {
@@ -1239,16 +1264,16 @@ $('candado').onclick = function () {
   if (!S.cfg || !S.cfg.pinH) hojaPin('nuevo', 'Creá tu PIN (4 números)'); else hojaPin('abrir', 'PIN');
 };
 $('pinCambiar').onclick = function () { hojaPin('nuevo', 'PIN nuevo (4 números)'); };
-$('pinCan').onclick = cerrarHoja;
+$('pinCan').onclick = function () { trasPin = null; cerrarHoja(); };
 $('pinOk').onclick = async function () {
   var v = $('pinIn').value.trim();
   if (!/^\d{4,6}$/.test(v)) { $('pinErr').textContent = '4 a 6 números'; return; }
   if (PINMODO === 'abrir') {
-    if (await hashPin(v) === S.cfg.pinH) { cerrarHoja(); bloquear(false); toast('🔓 Abierto 10 min'); } else { $('pinErr').textContent = 'PIN incorrecto'; $('pinIn').value = ''; }
+    if (await hashPin(v) === S.cfg.pinH) { cerrarHoja(); bloquear(false); toast('🔓 Abierto 10 min'); if (trasPin) { var f = trasPin; trasPin = null; setTimeout(f, 260); } } else { $('pinErr').textContent = 'PIN incorrecto'; $('pinIn').value = ''; }
   } else if (PINMODO === 'nuevo') { pin1 = v; hojaPin('repetir', 'Repetí el PIN'); }
   else if (PINMODO === 'repetir') {
     if (v !== pin1) { $('pinErr').textContent = 'No coincide'; $('pinIn').value = ''; return; }
-    db.doc('config/main').update({ pinH: await hashPin(v) }).then(function () { cerrarHoja(); bloquear(false); toast('✅ PIN guardado'); }, fallo);
+    db.doc('config/main').update({ pinH: await hashPin(v) }).then(function () { cerrarHoja(); bloquear(false); toast('✅ PIN guardado'); if (trasPin) { var f = trasPin; trasPin = null; setTimeout(f, 260); } }, fallo);
   }
 };
 $('pinIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('pinOk').click(); });
