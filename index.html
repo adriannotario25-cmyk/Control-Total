@@ -109,7 +109,7 @@ header.top .wrap{position:relative}
 .guardar.i{background:var(--entra)}
 .guardar:disabled{opacity:.6}
 .err{color:var(--sale);font-weight:600;min-height:20px;margin-top:8px}
-.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;z-index:20;display:none;max-width:90vw;text-align:center}
+.toast{position:fixed;left:50%;bottom:160px;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;z-index:20;display:none;max-width:90vw;text-align:center}
 .cargando{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--fondo);font-weight:700;color:var(--suave);z-index:30}
 @media (prefers-reduced-motion:reduce){.hoja{transition:none}}
 
@@ -251,6 +251,7 @@ header.top{background:#04173a;padding-top:4px}
   </div>
   <div class="card" id="movList"></div>
   <details class="card"><summary><h2 style="display:inline">📜 Quién hizo qué</h2></summary><div id="logList"></div></details>
+  <details class="card"><summary><h2 style="display:inline">🗑 Papelera</h2></summary><div id="papList"></div></details>
 </div></section>
 
 <!-- ============ FIJOS ============ -->
@@ -519,7 +520,20 @@ var sigMes = function (ym) { var p = ym.split('-').map(Number); p[1]++; if (p[1]
 var nombreMes = function (ym) { var p = String(ym || '').split('-'); return p.length === 2 ? MESES[+p[1] - 1] + ' ' + p[0] : ''; };
 var fdia = function (iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : ''; };
 var num = function (v) { var d = String(v == null ? '' : v).replace(/\D/g, ''); return d ? Number(d) : 0; };
-function toast(t) { var e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(function () { e.style.display = 'none'; }, 3200); }
+function toast(t, undo) {
+  var e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.t);
+  if (undo) {
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = '↩️ Deshacer';
+    b.style.cssText = 'margin-left:12px;background:#fff;color:#04173a;border:0;border-radius:10px;padding:8px 12px;font-weight:700';
+    b.onclick = function () { e.style.display = 'none'; clearTimeout(toast.t); undo().then(function () { toast('↩️ Deshecho'); }, fallo); };
+    e.appendChild(b);
+  }
+  toast.t = setTimeout(function () { e.style.display = 'none'; }, undo ? 9000 : 3200);
+}
+/* fotos para deshacer */
+function foto(paths) { return paths.map(function (p) { var s = p.split('/'), o = S[s[0]] && S[s[0]][s[1]]; return [p, o ? JSON.parse(JSON.stringify(o)) : null]; }); }
+function volver(fotos) { return Promise.all(fotos.map(function (f) { return f[1] ? db.doc(f[0]).set(f[1]) : db.doc(f[0]).delete().catch(function () {}); })); }
+function deudaDe(id) { return R ? R.deudas.filter(function (x) { return x.mov === id; })[0] : null; }
 function miles(el) { el.addEventListener('input', function () { var d = this.value.replace(/\D/g, ''); this.value = d ? Number(d).toLocaleString('es-PY') : ''; }); }
 function nuevoId(p) { return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function fallo(e) { toast('⚠️ No se pudo guardar' + (e && e.code === 'quota_exceeded' ? ': no hay más espacio' : '. Revisá internet.')); }
@@ -601,7 +615,7 @@ function guardarMov(m) {
     monto: Number(m.monto), estado: m.estado, mes: mes, creado: previo.creado || Date.now() };
   if (m.lugar != null) doc.lugar = String(m.lugar).slice(0, 60); else if (previo.lugar) doc.lugar = previo.lugar;
   if (m.estado === 'Pagado' || m.estado === 'Cobrado') { doc.cuenta = m.cuenta != null ? m.cuenta : (previo.cuenta || ''); doc.tPago = previo.tPago || Date.now(); }
-  return db.collection('movs').doc(id).set(doc);
+  return db.collection('movs').doc(id).set(doc).then(function () { return id; });
 }
 async function marcar(id, estado, monto, cuenta) {
   var u = { estado: estado, cuenta: cuenta || '', tPago: Date.now() }; if (monto) u.monto = monto;
@@ -795,7 +809,8 @@ function pintarMovs() {
     if (!pend && f !== ult) { ult = f; var tot = sum(L.filter(function (y) { return y.fecha === f && y.tipo === 'Gasto'; })); cab = '<div class="fila" style="margin:14px 0 2px;color:var(--suave);font-weight:700;font-size:13px"><span>' + (f === hoy ? 'HOY' : f === ayer ? 'AYER' : fdia(f) + '/' + f.slice(2, 4)) + '</span><span>' + (tot ? '−' + gs(tot) : '') + '</span></div>'; }
     var nuevo = (x.porT || (x.creado > 1e12 ? x.creado : 0)) > ahora - 86400000;
     return cab + '<div class="item"' + (nuevo ? ' style="background:#eef6ff;border-radius:10px;padding-left:6px"' : '') + '><div class="txt"><b>' + (nuevo ? '🆕 ' : '') + esc(x.concepto) + '</b><small>' + (pend ? 'Vence ' + fdia(x.vence || x.fecha) + ' · ' : '') + esc(x.cat) + (x.cuenta === 'Efectivo' ? ' · 💵' : x.cuenta === 'Banco' ? ' · 🏦' : '') + (x.lugar ? ' · 📍' + esc(x.lugar) : '') + (x.creo && x.creo !== 'Sistema' ? ' · 👤 ' + esc(x.creo) : '') + (x.por && x.por !== x.creo && x.por !== 'Sistema' ? ' · ✏️ ' + esc(x.por) : '') + '</small></div><span class="m ' + (x.tipo === 'Gasto' ? 'g' : 'i') + '">' + (x.tipo === 'Gasto' ? '−' : '+') + gs(x.monto) + '</span>' +
-      '<button class="chip-btn gris" type="button" data-editar="' + x.id + '" aria-label="Corregir">✏️</button><button class="chip-btn rojo" type="button" data-borrar="' + x.id + '" aria-label="Borrar">🗑</button></div>';
+      (function () { var esD = x.estado !== 'Pendiente' && (deudaDe(x.id) || CAT_DEUDA.indexOf(x.cat) >= 0); return '<button class="chip-btn gris' + (esD ? ' prot' : '') + '" type="button" data-editar="' + x.id + '" aria-label="Corregir">✏️</button>'; })() +
+      (x.estado !== 'Pendiente' && (deudaDe(x.id) || CAT_DEUDA.indexOf(x.cat) >= 0) ? '<button class="chip-btn gris prot" type="button" data-anular="' + x.id + '" aria-label="Anular pago">↩️</button>' : '<button class="chip-btn rojo prot" type="button" data-borrar="' + x.id + '" aria-label="Borrar">🗑</button>') + '</div>';
   }).join('') : '<p class="vacio">Sin movimientos.</p>';
 }
 function pintarFijos() {
@@ -833,7 +848,20 @@ document.body.addEventListener('click', function (e) {
   var b = e.target.closest('[data-pagar]');
   if (b) { abrirPago(b.dataset.pagar); return; }
   b = e.target.closest('[data-borrar]');
-  if (b) { var id = b.dataset.borrar, x = S.movs[id]; preguntar('¿Borrar "' + (x ? x.concepto : '') + '"?', function () { db.collection('movs').doc(id).delete().then(function () { toast('🗑 Borrado'); }, fallo); }); return; }
+  if (b) {
+    var id = b.dataset.borrar, x = S.movs[id]; if (!x) return;
+    var dd = deudaDe(id);
+    if (x.estado !== 'Pendiente' && (dd || CAT_DEUDA.indexOf(x.cat) >= 0)) {
+      preguntar('"' + x.concepto + '" es un pago de deuda. No se borra: ¿lo anulo y vuelve a ⏳ Falta?', function () { anular(id); });
+      return;
+    }
+    preguntar('¿Mandar "' + x.concepto + '" (' + gs(x.monto) + ') a la papelera? Lo podés recuperar.', function () { aPapelera(id); });
+    return;
+  }
+  b = e.target.closest('[data-anular]');
+  if (b) { var ida = b.dataset.anular, xa = S.movs[ida]; preguntar('¿Anular el pago de "' + xa.concepto + '"? Vuelve a ⏳ Falta.', function () { anular(ida); }); return; }
+  b = e.target.closest('[data-restaurar]');
+  if (b) { restaurar(b.dataset.restaurar); return; }
   b = e.target.closest('[data-editar]');
   if (b) { var m = Object.assign({ id: b.dataset.editar }, S.movs[b.dataset.editar]); abrir(m.tipo, m); return; }
   b = e.target.closest('[data-nuevo]');
@@ -919,15 +947,17 @@ $('pOk').onclick = function () {
     if (!efe || efe >= monto) { toast('Poné cuánto fue en efectivo (menos que el total)'); return; }
     var ban = monto - efe, x = S.movs[P.id], est = P.tipo === 'Ingreso' ? 'Cobrado' : 'Pagado';
     btn.disabled = true;
+    var nid = nuevoId('m'), dd2 = deudaDe(P.id), fo2 = foto(['movs/' + P.id, 'movs/' + nid].concat(dd2 ? ['deudas/' + dd2.id] : []));
     marcar(P.id, est, efe, 'Efectivo').then(function () {
-      return db.collection('movs').doc(nuevoId('m')).set({ fecha: x.fecha, vence: x.vence || x.fecha, tipo: x.tipo, concepto: x.concepto, cat: x.cat, monto: ban, estado: est, mes: x.mes, creado: Date.now(), cuenta: 'Banco', tPago: Date.now() });
-    }).then(function () { cerrarHoja(); toast('✅ 💵 ' + gs(efe) + ' + 🏦 ' + gs(ban)); }, fallo).then(function () { btn.disabled = false; });
+      return db.collection('movs').doc(nid).set({ fecha: x.fecha, vence: x.vence || x.fecha, tipo: x.tipo, concepto: x.concepto, cat: x.cat, monto: ban, estado: est, mes: x.mes, creado: Date.now(), cuenta: 'Banco', tPago: Date.now() });
+    }).then(function () { cerrarHoja(); toast('✅ 💵 ' + gs(efe) + ' + 🏦 ' + gs(ban), function () { return volver(fo2); }); }, fallo).then(function () { btn.disabled = false; });
     return;
   }
   btn.disabled = true;
   recordar(P.cuenta);
+  var dd = deudaDe(P.id), fo = foto(['movs/' + P.id].concat(dd ? ['deudas/' + dd.id] : []));
   marcar(P.id, P.tipo === 'Ingreso' ? 'Cobrado' : 'Pagado', monto === Number(P.monto) ? 0 : monto, P.cuenta)
-    .then(function () { cerrarHoja(); toast('✅ Listo'); }, fallo).then(function () { btn.disabled = false; });
+    .then(function () { cerrarHoja(); toast('✅ Listo', function () { return volver(fo); }); }, fallo).then(function () { btn.disabled = false; });
 };
 
 miles($('realIn')); miles($('fMonto')); miles($('pMonto')); miles($('nRec')); miles($('nCuota')); miles($('cEfe')); miles($('cBan')); miles($('tMonto'));
@@ -1043,22 +1073,23 @@ $('fOk').onclick = function () {
 };
 function guardarForm(m, dia) {
   var btn = $('fOk'); btn.disabled = true;
-  var monto = m.monto, pr;
+  var monto = m.monto, pr, fo = m.id ? foto(['movs/' + m.id]) : null;
   if (m.fijo) pr = db.collection('fijos').doc(nuevoId('f')).set({ tipo: m.tipo, concepto: m.concepto, cat: m.cat, monto: monto, dia: dia, deuda: '', activo: true });
   else {
     if (m.estado !== 'Pendiente') recordar(m.cuenta);
     pr = guardarMov({ id: m.id, tipo: m.tipo, monto: monto, concepto: m.concepto, cat: m.cat, fecha: m.fecha, lugar: m.lugar, estado: m.estado, cuenta: m.cuenta });
   }
-  pr.then(function () {
+  pr.then(function (nid) {
     cerrarHoja();
+    var un = m.fijo ? null : m.id ? function () { return volver(fo); } : function () { return db.collection('movs').doc(nid).delete(); };
     var cmx = calc().comida;
     if (!m.fijo && m.tipo === 'Gasto' && m.cat === 'Alimentación' && cmx.limite) {
       var q = cmx.limite - cmx.gastado;
-      toast(q >= 0 ? '✅ Guardado · te quedan ' + gs(q) + ' de mercadería' : '🚨 Guardado · te pasaste ' + gs(-q) + ' de mercadería');
+      toast(q >= 0 ? '✅ Guardado · te quedan ' + gs(q) + ' de mercadería' : '🚨 Guardado · te pasaste ' + gs(-q) + ' de mercadería', un);
     } else {
       var lx = !m.fijo && m.tipo === 'Gasto' ? calc().limites.filter(function (l) { return l.cat === m.cat; })[0] : null;
-      if (lx) { var q2 = lx.limite - lx.gastado; toast(q2 >= 0 ? '✅ Guardado · quedan ' + gs(q2) + ' de ' + m.cat : '🚨 Guardado · pasaste ' + gs(-q2) + ' en ' + m.cat); }
-      else toast(m.id ? '✅ Corregido' : '✅ Guardado: ' + gs(monto));
+      if (lx) { var q2 = lx.limite - lx.gastado; toast(q2 >= 0 ? '✅ Guardado · quedan ' + gs(q2) + ' de ' + m.cat : '🚨 Guardado · pasaste ' + gs(-q2) + ' en ' + m.cat, un); }
+      else toast(m.id ? '✅ Corregido' : '✅ Guardado: ' + gs(monto), un);
     }
   }, function (e) { $('fErr').textContent = 'No se pudo guardar. Revisá internet.'; })
     .then(function () { btn.disabled = false; });
@@ -1144,6 +1175,39 @@ $('limOk').onclick = function () {
   db.doc('config/main').update({ limites: L }).then(function () { $('limIn').value = ''; toast(v ? '✅ Límite ' + c + ': ' + gs(v) : '🗑 Límite quitado'); }, fallo);
 };
 $('fab').onclick = function () { abrir('Gasto'); };
+/* ================= papelera / anular ================= */
+var PAPEL = {};
+function aPapelera(id) {
+  var x = S.movs[id], pid = 'papelera/' + id;
+  return db.doc(pid).set({ col: 'movs', id: id, data: x, t: Date.now(), q: soy() }).then(function () { return db.collection('movs').doc(id).delete(); })
+    .then(function () { toast('🗑 A la papelera', function () { return restaurar(id, true); }); }, fallo);
+}
+function restaurar(id, silencio) {
+  var p = PAPEL[id]; if (!p) return Promise.resolve();
+  return db.collection(p.col).doc(p.id).set(p.data).then(function () { return db.doc('papelera/' + id).delete(); })
+    .then(function () { if (!silencio) toast('♻️ Recuperado: ' + (p.data.concepto || '')); });
+}
+async function anular(id) {
+  var x = S.movs[id], dd = deudaDe(id), fo = foto(['movs/' + id].concat(dd ? ['deudas/' + dd.id] : []));
+  try {
+    await db.collection('movs').doc(id).update({ estado: 'Pendiente', cuenta: '' });
+    if (dd) {
+      var up = {};
+      if (!dd.esTarjeta && dd.faltan != null) { up.faltan = Number(dd.faltan) + 1; if (dd.actual) up.actual = Math.max(0, Number(dd.actual) - 1); }
+      if (dd.saldo != null && dd.saldo !== '') up.saldo = Number(dd.saldo) + Number(x.monto);
+      if (Object.keys(up).length) await db.collection('deudas').doc(dd.id).update(up);
+    }
+    toast('↩️ Anulado, volvió a Falta', function () { return volver(fo); });
+  } catch (e) { fallo(e); }
+}
+function pintarPapelera() {
+  var L = lista(PAPEL).sort(function (a, b) { return b.t - a.t; });
+  $('papList').innerHTML = L.length ? L.map(function (p) {
+    var x = p.data || {}, d = new Date(p.t);
+    return '<div class="item"><div class="txt"><b>' + esc(x.concepto || '') + '</b><small>Borrado ' + pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + (p.q ? ' · 👤 ' + esc(p.q) : '') + '</small></div><span class="m">' + gs(x.monto) + '</span><button class="chip-btn" type="button" data-restaurar="' + p.id + '">♻️</button></div>';
+  }).join('') : '<p class="vacio">Vacía.</p>';
+}
+
 /* ================= seguridad ================= */
 var LOG = {}, abiertoHasta = 0, PINMODO = '', pin1 = '';
 function soy() { try { return localStorage.getItem('ctQuien') || ''; } catch (e) { return ''; } }
@@ -1229,6 +1293,7 @@ function arrancado() {
   suscribir('fijos', db.collection('fijos'));
   suscribir('trans', db.collection('trans'));
   db.collection('precios').onSnapshot(function (snap) { var o = {}; snap.docs.forEach(function (d) { o[d.id] = d.data(); }); PRECIOS = o; pintarPrecios(); }, function () {});
+  db.collection('papelera').onSnapshot(function (snap) { var o = {}; snap.docs.forEach(function (d) { o[d.id] = d.data(); }); PAPEL = o; pintarPapelera(); }, function () {});
   db.collection('log').onSnapshot(function (snap) { var o = {}; snap.docs.forEach(function (d) { o[d.id] = d.data(); }); LOG = o; pintarLog(); }, function () {});
   if (!soy()) setTimeout(pedirQuien, 1200);
   PORTADA_ORIG = $('portadaImg').src;
