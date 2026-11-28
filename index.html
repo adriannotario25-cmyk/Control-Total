@@ -376,6 +376,8 @@ header.top{background:#04173a;padding-top:4px}
   <input class="txt" id="nCant" inputmode="numeric" placeholder="Ej.: 3">
   <label class="lbl" for="nDia">¿Qué día del mes vence?</label>
   <input class="txt" id="nDia" inputmode="numeric">
+  <label class="lbl" for="nDesde">Primer pago (mes)</label>
+  <input class="txt" id="nDesde" type="month">
   <label class="lbl" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="nYa"> La primera cuota la pago este mes</label>
   <button class="guardar" type="button" id="nOk">Guardar préstamo</button>
   <div class="err" id="nErr" aria-live="polite"></div>
@@ -703,6 +705,7 @@ async function cerrarMes(auto) {
     var p = sig.split('-'), ultimo = new Date(+p[0], +p[1], 0).getDate(), creados = 0;
     for (var k = 0; k < fijos.length; k++) {
       var x = fijos[k];
+      if (x.desde && x.desde > sig) continue;
       if (x.deuda && faltan[x.deuda] !== undefined && faltan[x.deuda] !== '' && faltan[x.deuda] !== null && Number(faltan[x.deuda]) <= 0) continue;
       var fecha = sig + '-' + pad(Math.min(Number(x.dia) || 1, ultimo));
       var montoF = Number(x.monto) || 0, dd = x.deuda ? deu.filter(function (y) { return y.nombre === x.deuda; })[0] : null;
@@ -1073,7 +1076,7 @@ $('fEst').addEventListener('click', function (e) { var b = e.target.closest('[da
 $('velo').onclick = cerrarHoja; $('fCan').onclick = cerrarHoja; $('pCan').onclick = cerrarHoja;
 $('deuNuevo').onclick = function () {
   ['nNom', 'nRec', 'nCuota', 'nCant', 'nDia'].forEach(function (k) { $(k).value = ''; }); $('nNom').value = 'Financiera Mango'; $('nErr').textContent = '';
-  $('nDia').value = new Date().getDate(); $('nYa').checked = false;
+  $('nDia').value = new Date().getDate(); $('nYa').checked = false; $('nDesde').value = sigMes(S.cfg.mes);
   $('velo').classList.add('on'); $('hojaDeu').classList.add('on');
 };
 $('nCan').onclick = cerrarHoja;
@@ -1081,11 +1084,11 @@ $('nOk').onclick = async function () {
   var nom = $('nNom').value.trim(), rec = num($('nRec').value), cuota = num($('nCuota').value), cant = num($('nCant').value), dia = Math.min(31, Math.max(1, num($('nDia').value) || 1));
   if (!nom || !cuota || !cant) { $('nErr').textContent = 'Completá nombre, cuota y cantidad de cuotas.'; return; }
   var btn = this; btn.disabled = true;
-  var h = hoyISO(), nombre = nom + ' (' + h.slice(8, 10) + '/' + h.slice(5, 7) + ')', yaEsteMes = $('nYa').checked;
+  var h = hoyISO(), nombre = nom + ' (' + h.slice(8, 10) + '/' + h.slice(5, 7) + ')', desde = $('nDesde').value || '', yaEsteMes = $('nYa').checked || desde === S.cfg.mes;
   try {
     await db.collection('deudas').doc(nuevoId('d')).set({ nombre: nombre, tipo: 'Préstamo', cuota: cuota, dia: dia, actual: null, faltan: cant, tot: cant, saldo: cuota * cant });
-    await db.collection('fijos').doc(nuevoId('f')).set({ tipo: 'Gasto', concepto: nombre, cat: 'Préstamo', monto: cuota, dia: dia, deuda: nombre, activo: true });
-    if (rec) await guardarMov({ tipo: 'Ingreso', monto: rec, concepto: 'Préstamo recibido - ' + nom, cat: 'Otros', fecha: h, estado: 'Cobrado' });
+    await db.collection('fijos').doc(nuevoId('f')).set({ tipo: 'Gasto', concepto: nombre, cat: 'Préstamo', monto: cuota, dia: dia, deuda: nombre, activo: true, desde: desde });
+    if (rec) await guardarMov({ tipo: 'Ingreso', monto: rec, concepto: 'Préstamo recibido - ' + nom, cat: 'Otros', fecha: h, estado: 'Cobrado', cuenta: CUENTA });
     if (yaEsteMes) { var p = S.cfg.mes.split('-'), ult = new Date(+p[0], +p[1], 0).getDate(); await guardarMov({ tipo: 'Gasto', monto: cuota, concepto: nombre, cat: 'Préstamo', fecha: S.cfg.mes + '-' + pad(Math.min(dia, ult)), estado: 'Pendiente' }); }
     cerrarHoja(); toast('✅ Préstamo agregado: ' + cant + ' cuotas de ' + gs(cuota));
   } catch (e) { $('nErr').textContent = 'No se pudo guardar. Revisá internet.'; }
